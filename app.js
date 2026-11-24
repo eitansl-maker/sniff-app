@@ -330,8 +330,9 @@ async function viewLow(){
         let r;try{r=await sb.functions.invoke('barcode-lookup',{body:{code}})}catch(e){r={error:e}}
         const d=r&&r.data;
         if(!d||!d.found){m.innerHTML='לא הצלחתי לזהות אוטומטית. אפשר לבחור ידנית או ללחוץ "חפש באתר".';return}
-        const cm=CAT.find(c=>c.url&&d.handle&&String(c.url).indexOf('/products/'+d.handle)>=0);
+        const dh=(()=>{try{return decodeURIComponent(d.handle||'')}catch(e){return d.handle||''}})();const cm=CAT.find(c=>{if(!c.url)return false;let u=String(c.url);try{u=decodeURIComponent(u)}catch(e){}return dh&&u.indexOf('/products/'+dh)>=0});
         const brand=cm?cm.brand:d.vendor,title=cm?cm.title:d.title;
+        if(!title){m.innerHTML='נמצא באתר, אבל לא בקטלוג שלנו. בחר את הדגם ידנית ('+esc(dh)+').';return}
         $('#lwt').value=((brand?brand+' ':'')+(title||'')).trim();
         m.textContent='✅ זוהה: '+$('#lwt').value+'. העתק את המידה (EU) מהקופסה ושמור.';$('#lws').focus()}}
   };
