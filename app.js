@@ -148,7 +148,7 @@ async function viewHR(){
   const KL={morning:'בוקר',evening:'ערב',other:'אחר'};
   const relUI=x=>`<div class="rel"><small>שחרור להשאלה ביום זה:</small> ${['morning','evening','other'].map(k=>{const r=MYREL.find(y=>y.person_id===x.id&&y.kind===k);return r?`<button class="chip pri" data-a="unrel" data-p="${x.id}" data-k2="${k}">שוחרר ל${KL[k]} ✕</button>`:`<button class="chip" data-a="rel" data-p="${x.id}" data-k2="${k}">שחרר ל${KL[k]}</button>`}).join('')}</div>`;
   const multi=br.data.length>1;
-  view.innerHTML=(multi?`<div class="seg"><button class="chip" id="openall">פתח את כל הסניפים</button><button class="chip" id="closeall">סגור הכל</button></div>`:'')+`<div class="hint">משמרות ליום <input type="date" id="hrday" value="${day}"></div>`+br.data.map(b=>{
+  view.innerHTML=(multi?`<div class="seg"><button class="chip" id="openall">פתח את כל הסניפים</button><button class="chip" id="closeall">סגור הכל</button></div>`:'')+`<div class="dayb ${day===today()?'':'warn'}"><span>📅 אתה עובד על יום:</span><input type="date" id="hrday" value="${day}">${day===today()?'<b>היום</b>':'<b>לא היום!</b> <button class="chip" id="dtoday">חזרה להיום</button>'}</div>`+br.data.map(b=>{
     const mine=pp.data.filter(x=>x.branch_id===b.id),s=sh.data.filter(x=>x.branch_id===b.id);
     const col=k=>{const l=s.filter(x=>x.kind===k);const reqBtn=(meP&&meP.branch_id===b.id&&k!=='other'&&!l.some(y=>y.person_id===meP.id))?`<button class="chip big" data-a="req" data-k="${k}" data-b="${b.id}">אני רוצה את המשמרת</button>`:'';
     return `<div class="shift"><b>${KIND[k]}</b> (${l.filter(y=>y.status!=='requested').length})${reqBtn}${l.length?l.map(x=>{const q=P[x.person_id];if(!q)return'';const me=q.user_id===ME.userId;return `<div class="row">${contact(q)}${q.branch_id!==b.id?' <span class="tag">מושאל מסניף אחר</span>':''}${x.note?` <span class="tag">${esc(x.note)}</span>`:''}${st[x.status]}${me&&x.status!=='requested'?` <button class="chip" data-a="ok" data-id="${x.id}">אני יכול</button><button class="chip" data-a="cant" data-id="${x.id}">לא יכול</button>`:''}${can&&x.status==='requested'?` <button class="chip pri" data-a="approve" data-id="${x.id}">אשר</button>`:''}${(can||(me&&x.status==='requested'))?` <button class="chip" data-a="del" data-id="${x.id}">${x.status==='requested'?(can?'דחה':'בטל בקשה'):'הסר'}</button>`:''}</div>`}).join(''):'<div class="hint">אין שיבוץ</div>'}</div>`};
@@ -195,6 +195,7 @@ async function viewHR(){
   view.querySelectorAll('button[data-e]').forEach(b=>b.onclick=()=>{const f=view.querySelector('.edit[data-eid="'+b.dataset.e+'"]');f.hidden=!f.hidden});
   view.querySelectorAll('.bh').forEach(h=>h.onclick=()=>{const b=h.nextElementSibling;b.hidden=!b.hidden});
   if($('#openall')){$('#openall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=false);$('#closeall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=true)}
+  if($('#dtoday'))$('#dtoday').onclick=()=>{window.__hrDay=today();viewHR()};
   $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
   view.querySelectorAll('button[data-a]').forEach(btn=>btn.onclick=async()=>{
     const a=btn.dataset.a,box=btn.closest('.panel');let r;
