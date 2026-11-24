@@ -282,12 +282,34 @@ async function viewCal(){
   if($('#calb'))$('#calb').onchange=e=>{C.branch=e.target.value;viewCal()};
   view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{if(c.dataset.go||C.mode==='month'){window.__hrDay=c.dataset.d;window.__hrOpen=C.branch;location.hash='#/hr'}else{C.anchor=c.dataset.d;viewCal()}});
 }
+async function viewLow(){
+  const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
+  const br=await sb.from('sniff_branches').select('id,name').order('name');const B=br.data||[];
+  const L=window.__low=window.__low||{};if(!L.branch||!B.some(b=>b.id===L.branch))L.branch=(B.find(b=>b.name===ME.branchName)||B[0]||{}).id;
+  const q=await sb.from('sniff_lowstock').select('*').eq('branch_id',L.branch).neq('status','closed').order('created_at',{ascending:false});
+  if(q.error){view.innerHTML='<div class="panel"><h2>📦 להזמנה</h2><div class="hint">המסך עוד לא מוכן בבסיס הנתונים.</div></div>';return}
+  const canMgr=['hq','manager','area_manager','format_manager'].includes(ME.role);
+  const G={};q.data.forEach(x=>{const k=[x.brand,x.title,x.size,x.color].map(v=>(v||'').toLowerCase()).join('|');(G[k]=G[k]||[]).push(x)});
+  const groups=Object.values(G);
+  const row=g=>{const f=g[0],names=[...new Set(g.map(x=>x.marked_by_name||'עובד'))].join(', ');const st=g.every(x=>x.status==='ordered')?'🟢 הוזמן':'🔴 חדש';
+    return `<div class="row"><b>${esc((f.brand?f.brand+' ':'')+f.title)}</b> ${f.size?`· מידה ${esc(f.size)}`:''} ${f.color?`· ${esc(f.color)}`:''} <span class="sub">${st} · סומן ${g.length} פעמים (${esc(names)})</span>${f.note?` <small class="sub">${esc(f.note)}</small>`:''}${canMgr?` <button class="chip" data-ord="${g.map(x=>x.id).join(',')}">הוזמן</button> <button class="chip" data-cls="${g.map(x=>x.id).join(',')}">נסגר</button>`:`${g.some(x=>x.marked_by===ME.userId)?` <button class="chip" data-cls="${g.filter(x=>x.marked_by===ME.userId&&x.status==='open').map(x=>x.id).join(',')}">בטל</button>`:''}`}</div>`};
+  const names=[...new Set(CAT.map(c=>(c.brand?c.brand+' ':'')+c.title))].sort();
+  view.innerHTML=`<div class="panel"><h2>📦 אוזל / להזמנה</h2>${B.length>1?`<label class="calbl"><span>סניף</span><select id="lwb">${B.map(b=>`<option value="${b.id}" ${b.id===L.branch?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}
+  <div class="mode"><label>דגם<input id="lwt" list="lwl" placeholder="התחל להקליד שם דגם"><datalist id="lwl">${names.slice(0,3000).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label><label>מידה<input id="lws" inputmode="numeric"></label><label>צבע<input id="lwc"></label><label>הערה<input id="lwn"></label><button class="chip big pri" id="lwsave">סמן כאוזל</button></div></div>
+  <div class="panel"><h3>רשימה להזמנה (${groups.length})</h3>${groups.length?groups.map(row).join(''):'<div class="hint">אין פריטים מסומנים</div>'}</div>`;
+  if($('#lwb'))$('#lwb').onchange=e=>{L.branch=e.target.value;viewLow()};
+  $('#lwsave').onclick=async()=>{const t=$('#lwt').value.trim();if(!t)return alert('כתוב שם דגם');const m=CAT.find(c=>((c.brand?c.brand+' ':'')+c.title)===t);
+    const r=await sb.from('sniff_lowstock').insert({branch_id:L.branch,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null,note:$('#lwn').value.trim()||null,marked_by_name:ME.name||null});
+    if(r.error)return alert('לא הצליח: '+r.error.message);viewLow()};
+  const upd=(attr,st)=>view.querySelectorAll('button[data-'+attr+']').forEach(b=>b.onclick=async()=>{const ids=b.dataset[attr].split(',').filter(Boolean);const r=await sb.from('sniff_lowstock').update({status:st,status_by:ME.userId,status_at:new Date().toISOString()}).in('id',ids);if(r.error)return alert('לא הצליח: '+r.error.message);viewLow()});
+  upd('ord','ordered');upd('cls','closed');
+}
 function route(){
   const h=location.hash;
   if(h.startsWith('#/brand/'))return viewBrand(h.slice(8));
   const t=h.replace('#/','')||'search';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR,cal:viewCal}[t]||viewSearch)();
+  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR,cal:viewCal,low:viewLow}[t]||viewSearch)();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();
