@@ -155,5 +155,5 @@ window.addEventListener('hashchange',route);route();
 let dip=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#install').style.display='inline-block'});
 $('#install').onclick=async()=>{if(dip){dip.prompt();await dip.userChoice;dip=null;$('#install').style.display='none'}};
 if(/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone){const i=$('#install');i.style.display='inline-block';i.onclick=()=>alert('בספארי: כפתור השיתוף ואז "הוספה למסך הבית"')}
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator){const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!window.__rl){window.__rl=1;location.reload()}});navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{})}
 };
