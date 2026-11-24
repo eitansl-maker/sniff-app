@@ -124,11 +124,32 @@ function viewBrand(id){
   ${b.models?`<h3>דגמים</h3>${b.models.map(m=>`<div class="model"><b>${esc(m.name)}</b><div>${esc(m.audience)}</div></div>`).join('')}`:''}</div>`;
   $('#back').onclick=()=>history.back();
 }
-function viewSales(){
-  view.innerHTML=`<div class="panel"><h2>ארבעת שלבי המכירה</h2>${P.stages.map((s,i)=>`<div class="stage"><div class="n">${i+1}</div><div><b>${s.name}</b> <span class="sub">${s.en}</span><div>${s.text}</div></div></div>`).join('')}<p class="hint">${P.newModel}</p></div>
+function viewPrinciples(){
+  view.innerHTML=`<div class="seg"><button class="chip pri" data-st="p">עקרונות</button><button class="chip" data-st="c">📞 טלפונים</button></div>`+`<div class="panel"><h2>ארבעת שלבי המכירה</h2>${P.stages.map((s,i)=>`<div class="stage"><div class="n">${i+1}</div><div><b>${s.name}</b> <span class="sub">${s.en}</span><div>${s.text}</div></div></div>`).join('')}<p class="hint">${P.newModel}</p></div>
   <div class="panel"><h2>עקרונות בסיס לאנשי השירות</h2><ul>${P.staff.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
   <div class="panel"><h2>עקרונות בסיס חנויות</h2><ul>${P.store.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  view.querySelectorAll('button[data-st]').forEach(b=>b.onclick=()=>{window.__stab=b.dataset.st;viewSales()});
 }
+
+const EMERG=[['משטרה','100'],['מד"א (אמבולנס)','101'],['כיבוי אש','102'],['חברת החשמל','103'],['ער"ן, סיוע נפשי','1201']];
+async function viewContacts(){
+  const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
+  const [ct,br,un]=await Promise.all([sb.from('sniff_contacts').select('*').order('sort').order('label'),sb.from('sniff_branches').select('id,name').order('name'),sb.from('sniff_units').select('id,name,kind')]);
+  const L=ct.error?[]:(ct.data||[]);const BN={},UN={};(br.data||[]).forEach(x=>BN[x.id]=x.name);(un.data||[]).forEach(x=>UN[x.id]=x.name);
+  const tel=n=>n?`<a class="call" href="tel:${esc(n.replace(/[^0-9+]/g,''))}">📞 ${esc(n)}</a>`:'';
+  const row=c=>`<div class="row"><b>${esc(c.label)}</b> ${tel(c.phone)}${c.email?` <a class="call" href="mailto:${esc(c.email)}">✉️ ${esc(c.email)}</a>`:''}${c.note?` <small class="sub">${esc(c.note)}</small>`:''}${canEditC?` <button class="chip" data-delc="${c.id}">מחק</button>`:''}</div>`;
+  const canEditC=['hq','manager','area_manager','format_manager'].includes(ME.role);
+  const grp=(t,l)=>l.length?`<div class="panel"><h3>${t}</h3>${l.map(row).join('')}</div>`:'';
+  const org=L.filter(c=>!c.unit_id&&!c.branch_id),uns=L.filter(c=>c.unit_id),brs=L.filter(c=>c.branch_id);
+  view.innerHTML=`<div class="seg"><button class="chip" data-st="p">עקרונות</button><button class="chip pri" data-st="c">📞 טלפונים</button></div>
+  <div class="panel"><h2>🚨 חירום</h2>${EMERG.map(e=>`<div class="row"><b>${esc(e[0])}</b> ${tel(e[1])}</div>`).join('')}</div>
+  ${grp('משרדים ומטה',org)}${uns.length?`<div class="panel"><h3>האזור שלי</h3>${uns.map(c=>`<div class="hint">${esc(UN[c.unit_id]||'')}</div>${row(c)}`).join('')}</div>`:''}${brs.length?`<div class="panel"><h3>סניפים</h3>${brs.map(c=>`<div class="hint">${esc(BN[c.branch_id]||'')}</div>${row(c)}`).join('')}</div>`:''}
+  ${canEditC?`<div class="panel"><h3>הוספת טלפון</h3><div class="mode"><label>שם / תפקיד<input id="ctl" placeholder="למשל: מנהל אזור דן"></label><label>טלפון<input id="ctp" inputmode="tel"></label><label>הערה<input id="ctn"></label><label>למי זה מופיע<select id="cts"><option value="org">כל הארגון (רק מטה)</option>${(un.data||[]).map(u=>`<option value="u:${u.id}">אזור: ${esc(u.name)}</option>`).join('')}${(br.data||[]).map(b=>`<option value="b:${b.id}">סניף: ${esc(b.name)}</option>`).join('')}</select></label><button class="chip big pri" id="ctsave">שמור טלפון</button></div></div>`:''}`;
+  view.querySelectorAll('button[data-st]').forEach(b=>b.onclick=()=>{window.__stab=b.dataset.st;viewSales()});
+  view.querySelectorAll('button[data-delc]').forEach(b=>b.onclick=async()=>{if(!confirm('למחוק את המספר?'))return;const r=await sb.from('sniff_contacts').delete().eq('id',b.dataset.delc);if(r.error)return alert('לא הצליח: '+r.error.message);viewContacts()});
+  if($('#ctsave'))$('#ctsave').onclick=async()=>{const l=$('#ctl').value.trim();if(!l)return;const s=$('#cts').value;const org=((br.data||[])[0]||{}).org_id||(L[0]||{}).org_id;const o=await sb.from('sniff_branches').select('org_id').limit(1);const row={org_id:(o.data&&o.data[0]&&o.data[0].org_id)||org,label:l,phone:$('#ctp').value.trim()||null,note:$('#ctn').value.trim()||null};if(s.startsWith('u:'))row.unit_id=s.slice(2);else if(s.startsWith('b:'))row.branch_id=s.slice(2);const r=await sb.from('sniff_contacts').insert(row);if(r.error)return alert('לא הצליח: '+r.error.message);viewContacts()};
+}
+function viewSales(){if(window.__stab==='c')return viewContacts();viewPrinciples()}
 
 const KIND={morning:'בוקר',evening:'ערב',other:'אחר'};
 const DEVH='49f9a8de9117cee6db1894e052090e81f79a64f2debf552a48dd59beab6aca13';
