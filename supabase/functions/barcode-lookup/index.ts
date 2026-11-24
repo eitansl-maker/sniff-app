@@ -15,7 +15,7 @@ Deno.serve(async(req)=>{
     const s=await get(`${BASE}/search/suggest.json?q=${code}&resources[type]=product&resources[limit]=3`);
     if(s.status===429||s.status===403)return out({found:false,reason:'blocked'});
     if(s.ok){const j=await s.json().catch(()=>null);const p=j?.resources?.results?.products?.[0];if(p?.handle){handle=p.handle;vendor=p.vendor||null;ptitle=p.title||null}else if(p?.url){const m=String(p.url).match(/\/products\/([^?\/]+)/);if(m)handle=m[1]}}
-    if(!handle){const h=await get(`${BASE}/search?q=${code}&type=product`);if(h.status===429||h.status===403)return out({found:false,reason:'blocked'});if(h.ok){const t=await h.text();const k=t.search(/נמצאה תוצאה|נמצאו\s*\d+\s*תוצאות/);if(k>=0){const m=t.slice(k).match(/\/products\/([^"'?#\s<]+)/);if(m)handle=m[1]}}
+    if(!handle){const h=await get(`${BASE}/search?q=${code}&type=product`);if(h.status===429||h.status===403)return out({found:false,reason:'blocked'});if(h.ok){const t=await h.text();const k=t.search(/נמצאה תוצאה|נמצאו\s*\d+\s*תוצאות/);if(k>=0){const m=t.slice(k).match(/\/products\/([^"'?#\s<]+)/);if(m)handle=m[1]}}}
     if(!handle)return out({found:false,reason:'no_result'});
     return out({found:true,handle,vendor:vendor,title:ptitle});
   }catch(e){return out({found:false,reason:'error',message:String(e)})}
