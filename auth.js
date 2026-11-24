@@ -6,11 +6,11 @@ const gate=$('#gate');
 function show(html){gate.hidden=false;$('#view').innerHTML='';gate.innerHTML=html}
 function loginScreen(msg){
   show(`<div class="panel gate"><h2>ברוכים הבאים</h2><p>${msg||'הכניסה לעובדים שאושרו מראש בלבד.'}</p><button class="chip big" id="gbtn">כניסה עם Google</button></div>`);
-  $('#gbtn').onclick=()=>sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
+  $('#gbtn').onclick=()=>sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});
 }
 function deniedScreen(email){
   show(`<div class="panel gate"><h2>אין הרשאה</h2><p>המייל ${email.replace(/[<&]/g,'')} עדיין לא ברשימת העובדים. יש לבקש מהמנהלת להוסיף אותו.</p><button class="chip" id="lo">התחברות עם חשבון אחר</button></div>`);
-  $('#lo').onclick=async()=>{await sb.auth.signOut();loginScreen()};
+  $('#lo').onclick=async()=>{try{await sb.auth.signOut({scope:'local'})}catch(e){}try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.replace(location.pathname)};
 }
 async function start(){
   const {data:{session}}=await sb.auth.getSession();
@@ -32,7 +32,7 @@ async function start(){
   window.SNIFF_BOOT(B,(pr.data&&pr.data.body)||{staff:[],store:[],stages:[],newModel:''},{
     name:mem.display_name||m.full_name||u.email,photo:m.avatar_url||m.picture||'',role:mem.role,title:mem.title,
     orgName:mem.sniff_orgs&&mem.sniff_orgs.name,branchName:mem.sniff_branches&&mem.sniff_branches.name,branchNumber:mem.sniff_branches&&mem.sniff_branches.number,
-    sb,userId:u.id,logout:async()=>{await sb.auth.signOut();location.hash='';location.reload()}});
+    sb,userId:u.id,logout:async()=>{try{await sb.auth.signOut({scope:'local'})}catch(e){}try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.replace(location.pathname)}});
 }
 start();
 })();

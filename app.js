@@ -48,13 +48,15 @@ function search(q){
   out.sort((x,y)=>y.score-x.score);
   const seen=new Set();return out.filter(r=>{const k=r.b.id+'|'+(r.m?r.m.name:'');if(seen.has(k))return false;seen.add(k);return showInactive||r.b.status==='active'}).slice(0,12);
 }
+const HUES=[[37,99,235],[124,58,237],[219,39,119],[234,88,12],[5,150,105],[8,145,178],[202,138,4]];
+function bav(b){let n=0;for(const c of b.name)n+=c.charCodeAt(0);const h=HUES[n%HUES.length];return `<div class="bav" style="background:linear-gradient(135deg,rgb(${h}),rgb(${h.map(x=>Math.round(x*.7)).join(',')}))">${esc(b.name[0].toUpperCase())}</div>`}
 function brandCard(b,extra,m){
   const off=b.status==='inactive';
   const title=m?`${esc(b.he)} ${esc(m.name)}`:esc(b.he);
   const sub=m?`${esc(b.name)} · ${esc(b.type)}`:`${esc(b.name)} · ${esc(b.type)} · ${esc(b.origin)}`;
-  return `<div class="card ${off?'off':''}" data-b="${b.id}"><h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div>`}
+  return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
 function viewSearch(){
-  view.innerHTML=`<div class="search"><span>🔎</span><input id="q" placeholder='למשל: נעלי ריצה לילדה, סנדל עמיד במים, נעל לכאבי רגליים' autocomplete="off"></div>
+  view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='למשל: נעלי ריצה לילדה, סנדל עמיד במים, נעל לכאבי רגליים' autocomplete="off"></div>
   <div class="chips">${['נעלי ריצה','סנדל עמיד במים','מגפי חורף','תמיכה בקשת','רגל רחבה','טבעוני','תיק גב','נעל קלה מאוד'].map(x=>`<button class="chip" data-q="${x}">${x}</button>`).join('')}</div>
   <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
   <div class="hint">אפשר לכתוב כמו שלקוח מדבר. המערכת מבינה נושאים כמו ריצה, ילדים, מים, נוחות ותמיכה, ומציגה את המותג והדגם המתאימים.</div><div id="res"></div>`;
@@ -134,5 +136,8 @@ function route(){
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();
+let dip=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#install').style.display='inline-block'});
+$('#install').onclick=async()=>{if(dip){dip.prompt();await dip.userChoice;dip=null;$('#install').style.display='none'}};
+if(/iphone|ipad/i.test(navigator.userAgent)&&!navigator.standalone){const i=$('#install');i.style.display='inline-block';i.onclick=()=>alert('בספארי: כפתור השיתוף ואז "הוספה למסך הבית"')}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 };
