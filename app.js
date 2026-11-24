@@ -56,28 +56,25 @@ function brandCard(b,extra,m){
   const sub=m?`${esc(b.name)} · ${esc(b.type)}`:`${esc(b.name)} · ${esc(b.type)} · ${esc(b.origin)}`;
   return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
 function viewSearch(){
-  view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='למשל: נעלי ריצה לילדה, סנדל עמיד במים, נעל לכאבי רגליים' autocomplete="off"></div>
-  <div class="chips">${['נעלי ריצה','סנדל עמיד במים','מגפי חורף','תמיכה בקשת','רגל רחבה','טבעוני','תיק גב','נעל קלה מאוד'].map(x=>`<button class="chip" data-q="${x}">${x}</button>`).join('')}</div>
+  const tags=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
+  view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"></div>
+  <div class="chips">${tags.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
-  <div class="hint">אפשר לכתוב כמו שלקוח מדבר. המערכת מבינה נושאים כמו ריצה, ילדים, מים, נוחות ותמיכה, ומציגה את המותג והדגם המתאימים.</div><div id="res"></div>`;
+  <div id="res"></div>`;
   const q=$('#q'),res=$('#res');
-  const run=()=>{const r=search(q.value);
-    if(!q.value.trim()){res.innerHTML='';return}
-    res.innerHTML=r.length?r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+  const run=()=>{
+    if(q.value.trim()){
+      const r=search(q.value);
+      res.innerHTML=r.length?'<div class="hint">התוצאות מסודרות לפי התאמה</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+    }else{
+      const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag)));
+      res.innerHTML=`<div class="hint">${l.length} מותגים, בסדר א' ב'</div><div class="grid">${l.map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
+    }
     bind()};
   q.addEventListener('input',run);
-  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{q.value=c.dataset.q;run()});
+  document.querySelectorAll('.chip[data-t]').forEach(c=>c.onclick=()=>{tag=tag===c.dataset.t?null:c.dataset.t;const v=q.value;viewSearch();$('#q').value=v;$('#q').dispatchEvent(new Event('input'))});
   $('#inact').onchange=e=>{showInactive=e.target.checked;run()};
-  q.focus();
-}
-function viewBrands(){
-  const all=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
-  view.innerHTML=`<div class="chips">${all.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${t}">${esc(t)}</button>`).join('')}</div>
-  <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
-  <div class="grid">${B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag))).map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
-  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{tag=tag===c.dataset.t?null:c.dataset.t;viewBrands()});
-  $('#inact').onchange=e=>{showInactive=e.target.checked;viewBrands()};
-  bind();
+  run();
 }
 function viewBrand(id){
   const b=B.find(x=>x.id===id);const off=b.status==='inactive';
@@ -132,7 +129,7 @@ function route(){
   if(h.startsWith('#/brand/'))return viewBrand(h.slice(8));
   const t=h.replace('#/','')||'search';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ({search:viewSearch,brands:viewBrands,sales:viewSales,hr:viewHR}[t]||viewSearch)();
+  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR}[t]||viewSearch)();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();
