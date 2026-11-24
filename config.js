@@ -1,7 +1,7 @@
 // הגדרות כלליות. המפתח הציבורי (publishable) בטוח לדפדפן; ההגנה על המידע היא ב-RLS בשרת.
 window.SNIFF_CONFIG = {
   appName: "סניף",
-  version: "2.1",
+  version: "2.2",
   supabaseUrl: "https://eoyfkteuzyqychgkzihv.supabase.co",
   supabaseKey: "sb_publishable_u4OPUHRXvkJ_yrWtcInTeg_OFfr5IKZ"
 };

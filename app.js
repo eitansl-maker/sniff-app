@@ -92,7 +92,7 @@ function viewSales(){
   <div class="panel"><h2>עקרונות בסיס חנויות</h2><ul>${P.store.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
 }
 
-const KIND={morning:'בוקר',evening:'ערב'};
+const KIND={morning:'בוקר',evening:'ערב',other:'אחר'};
 const today=()=>new Date().toLocaleDateString('sv');
 async function viewHR(){
   const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
@@ -106,19 +106,20 @@ async function viewHR(){
   const contact=x=>`<span class="ppl"><b>${esc(x.name)}</b>${x.title?` <small>${esc(x.title)}</small>`:''}${x.phone?` <a class="call" href="tel:${esc(x.phone)}">📞 ${esc(x.phone)}</a>`:''}${x.email?` <a class="call" href="mailto:${esc(x.email)}">✉️</a>`:''}</span>`;
   view.innerHTML=`<div class="hint">משמרות ליום <input type="date" id="hrday" value="${day}"></div>`+br.data.map(b=>{
     const mine=pp.data.filter(x=>x.branch_id===b.id),s=sh.data.filter(x=>x.branch_id===b.id);
-    const col=k=>{const l=s.filter(x=>x.kind===k);return `<div class="shift"><b>${KIND[k]}</b> (${l.length})${l.length?l.map(x=>{const q=P[x.person_id];if(!q)return'';const me=q.user_id===ME.userId;return `<div class="row">${contact(q)}${st[x.status]}${me?` <button class="chip" data-a="ok" data-id="${x.id}">אני יכול</button><button class="chip" data-a="cant" data-id="${x.id}">לא יכול</button>`:''}${can?` <button class="chip" data-a="del" data-id="${x.id}">הסר</button>`:''}</div>`}).join(''):'<div class="hint">אין שיבוץ</div>'}</div>`};
-    return `<div class="panel"><h3>${esc(b.name)}${b.number?` · מס' ${esc(b.number)}`:''}</h3><div class="two">${col('morning')}${col('evening')}</div>
+    const col=k=>{const l=s.filter(x=>x.kind===k);return `<div class="shift"><b>${KIND[k]}</b> (${l.length})${l.length?l.map(x=>{const q=P[x.person_id];if(!q)return'';const me=q.user_id===ME.userId;return `<div class="row">${contact(q)}${x.note?` <span class="tag">${esc(x.note)}</span>`:''}${st[x.status]}${me?` <button class="chip" data-a="ok" data-id="${x.id}">אני יכול</button><button class="chip" data-a="cant" data-id="${x.id}">לא יכול</button>`:''}${can?` <button class="chip" data-a="del" data-id="${x.id}">הסר</button>`:''}</div>`}).join(''):'<div class="hint">אין שיבוץ</div>'}</div>`};
+    return `<div class="panel"><h3>${esc(b.name)}${b.number?` · מס' ${esc(b.number)}`:''}</h3><div class="two">${col('morning')}${col('evening')}</div>${s.some(x=>x.kind==='other')?col('other'):''}
     ${can?`<div class="seg"><button class="chip big" data-m="shift">שיבוץ עובד למשמרת</button><button class="chip big" data-m="new">הוספת עובד חדש</button></div>
-    <div class="mode" data-mode="shift" hidden>${mine.length?`<label>עובד<select class="psel">${mine.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label>משמרת<select class="ksel"><option value="morning">בוקר</option><option value="evening">ערב</option></select></label><button class="chip big pri" data-a="add" data-b="${b.id}">שבץ ליום שנבחר</button>`:'<div class="hint">עוד אין עובדים בסניף. קודם יש להוסיף עובד חדש.</div>'}</div>
+    <div class="mode" data-mode="shift" hidden>${mine.length?`<label>עובד<select class="psel">${mine.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label><label>משמרת<select class="ksel"><option value="morning">בוקר</option><option value="evening">ערב</option><option value="other">אחר (לכתוב במילים)</option></select></label><label class="onote" hidden>פירוט המשמרת<input class="note" placeholder="למשל: משמרת מיוחדת, סגירת חג, 10:00-14:00"></label><button class="chip big pri" data-a="add" data-b="${b.id}">שבץ ליום שנבחר</button>`:'<div class="hint">עוד אין עובדים בסניף. קודם יש להוסיף עובד חדש.</div>'}</div>
     <div class="mode" data-mode="new" hidden><label>שם<input class="nm"></label><label>טלפון<input class="ph" inputmode="tel"></label><label>מייל (לכניסה עם גוגל)<input class="em" inputmode="email"></label><label>תפקיד<input class="tt"></label><button class="chip big pri" data-a="newp" data-b="${b.id}">שמור עובד</button></div>`:''}
     <details><summary>כל אנשי הצוות (${mine.length})</summary>${mine.map(x=>`<div class="row">${contact(x)}</div>`).join('')||'<div class="hint">עוד לא נוספו עובדים</div>'}</details></div>`}).join('')||'<div class="hint">אין סניפים להצגה</div>';
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
+  view.querySelectorAll('.ksel').forEach(k=>k.onchange=()=>{k.closest('.mode').querySelector('.onote').hidden=k.value!=='other'});
   $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
   view.querySelectorAll('button[data-a]').forEach(btn=>btn.onclick=async()=>{
     const a=btn.dataset.a,box=btn.closest('.panel');let r;
     if(a==='del')r=await sb.from('sniff_shifts').delete().eq('id',btn.dataset.id);
     else if(a==='ok'||a==='cant')r=await sb.from('sniff_shifts').update({status:a==='ok'?'confirmed':'cant'}).eq('id',btn.dataset.id);
-    else if(a==='add'){const pid=box.querySelector('.psel').value;if(!pid)return alert('אין עובד לשיבוץ');r=await sb.from('sniff_shifts').insert({branch_id:btn.dataset.b,person_id:pid,day,kind:box.querySelector('.ksel').value})}
+    else if(a==='add'){const pid=box.querySelector('.psel').value;if(!pid)return alert('אין עובד לשיבוץ');r=await sb.from('sniff_shifts').insert({branch_id:btn.dataset.b,person_id:pid,day,kind:box.querySelector('.ksel').value,note:box.querySelector('.ksel').value==='other'?(box.querySelector('.note').value.trim()||null):null})}
     else if(a==='newp'){const n=box.querySelector('.nm').value.trim();if(!n)return;const org=br.data.find(x=>x.id===btn.dataset.b).org_id;r=await sb.from('sniff_people').insert({org_id:org,branch_id:btn.dataset.b,name:n,phone:box.querySelector('.ph').value.trim()||null,email:box.querySelector('.em').value.trim().toLowerCase()||null,title:box.querySelector('.tt').value.trim()||null})}
     if(r&&r.error)alert('לא הצליח: '+r.error.message);else viewHR();
   });
