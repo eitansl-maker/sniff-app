@@ -35,7 +35,7 @@ async function start(){
   window.SNIFF_BOOT(B,(pr.data&&pr.data.body)||{staff:[],store:[],stages:[],newModel:''},{
     email:u.email||'',
     name:mem.display_name||m.full_name||m.name||u.email,photo:m.avatar_url||m.picture||'',role:mem.role,title:mem.title,
-    orgName:mem.sniff_orgs&&mem.sniff_orgs.name,branchName:mem.sniff_branches&&mem.sniff_branches.name,branchNumber:mem.sniff_branches&&mem.sniff_branches.number,branchType:mem.sniff_branches&&mem.sniff_branches.branch_type,
+    orgId:mem.org_id,orgName:mem.sniff_orgs&&mem.sniff_orgs.name,branchName:mem.sniff_branches&&mem.sniff_branches.name,branchNumber:mem.sniff_branches&&mem.sniff_branches.number,branchType:mem.sniff_branches&&mem.sniff_branches.branch_type,
     sb,catalog:CAT,userId:u.id,logout:async()=>{try{await sb.auth.signOut({scope:'local'})}catch(e){}try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.replace(location.pathname)}});
 }
 start();
