@@ -330,10 +330,12 @@ async function viewLow(){
         let r;try{r=await sb.functions.invoke('barcode-lookup',{body:{code}})}catch(e){r={error:e}}
         const d=r&&r.data;
         if(!d||!d.found){m.innerHTML='לא הצלחתי לזהות אוטומטית. אפשר לבחור ידנית או ללחוץ "חפש באתר".';return}
-        const dh=(()=>{try{return decodeURIComponent(d.handle||'')}catch(e){return d.handle||''}})();const cm=CAT.find(c=>{if(!c.url)return false;let u=String(c.url);try{u=decodeURIComponent(u)}catch(e){}return dh&&u.indexOf('/products/'+dh)>=0});
-        const brand=cm?cm.brand:d.vendor,title=cm?cm.title:d.title;
-        if(!title){m.innerHTML='נמצא באתר, אבל לא בקטלוג שלנו. בחר את הדגם ידנית ('+esc(dh)+').';return}
-        $('#lwt').value=((brand?brand+' ':'')+(title||'')).trim();
+        const dh=(()=>{try{return decodeURIComponent(d.handle||'')}catch(e){return d.handle||''}})();
+        const toks=dh.toLowerCase().split(/[^a-z0-9\u0590-\u05ff]+/).filter(x=>x&&x.length>1);
+        let cm=CAT.find(c=>{if(!c.url)return false;let u=String(c.url);try{u=decodeURIComponent(u)}catch(e){}return dh&&u.indexOf('/products/'+dh)>=0});
+        if(!cm){let best=0;CAT.forEach(c=>{const hay=' '+((c.brand||'')+' '+(c.title||'')+' '+(c.model_code||'')).toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]+/g,' ')+' ';const lat=toks.filter(t=>/^[a-z0-9]+$/.test(t));const sc=lat.filter(t=>hay.indexOf(' '+t+' ')>=0).length;const cov=sc/(lat.length||1);if(sc>=2&&cov>=0.6&&sc>best){best=sc;cm=c}})}
+        const brand=cm?cm.brand:d.vendor,title=cm?cm.title:(d.title||dh.replace(/-+/g,' ').trim());
+                $('#lwt').value=((brand?brand+' ':'')+(title||'')).trim();
         m.textContent='✅ זוהה: '+$('#lwt').value+'. העתק את המידה (EU) מהקופסה ושמור.';$('#lws').focus()}}
   };
   $('#lwsave').onclick=async()=>{const t=$('#lwt').value.trim();if(!t)return alert('כתוב שם דגם');const m=CAT.find(c=>((c.brand?c.brand+' ':'')+c.title)===t);
