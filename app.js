@@ -80,9 +80,10 @@ function viewSearch(){
     if(q.value.trim()){
       const r=search(q.value).filter(x=>hasCat(x.b));
       const cr=searchCat(q.value);
-      res.innerHTML=(r.length||cr.length)?(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':'')+(r.length?'<div class="hint">'+(cr.length?'מותגים קשורים':'התוצאות מסודרות לפי התאמה')+'</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+      res.innerHTML=(r.length||cr.length)?(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':'')+(r.length?'<div class="hint">'+(cr.length?'מותגים קשורים':'התוצאות מסודרות לפי התאמה')+'</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):''):'<div class="hint">לא נמצאו נתונים. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     }else{
       const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||(b.tags.includes(tag)&&hasCat(b))));
+      if(!l.length){res.innerHTML='<div class="hint">לא נמצאו נתונים</div>';bind();return}
       res.innerHTML=`<div class="hint">${l.length} מותגים, בסדר א' ב'</div><div class="grid">${l.map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
     }
     bind()};
