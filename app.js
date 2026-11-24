@@ -160,6 +160,28 @@ async function viewHR(){
   if(ME.role==='hq'){view.insertAdjacentHTML('beforeend',`<div class="panel"><h3>סניף חדש</h3><div class="mode"><label>שם הסניף<input id="nbn"></label><label>מספר סניף<input id="nbno" inputmode="numeric"></label><div class="lbl">סוג סניף</div><div class="seg kseg"><button type="button" class="chip big pri" data-bt="regular">רגיל</button><button type="button" class="chip big" data-bt="outlet">אאוטלט</button></div><input type="hidden" id="nbt" value="regular"><button class="chip big pri" id="nbsave">שמור סניף</button></div></div>`);
     view.querySelectorAll('button[data-bt]').forEach(b=>b.onclick=()=>{$('#nbt').value=b.dataset.bt;view.querySelectorAll('button[data-bt]').forEach(x=>x.classList.toggle('pri',x===b))});
     $('#nbsave').onclick=async()=>{const n=$('#nbn').value.trim();if(!n)return;const org=(br.data[0]||{}).org_id;if(!org)return alert('אין ארגון');const r=await sb.from('sniff_branches').insert({org_id:org,name:n,number:$('#nbno').value.trim()||null,branch_type:$('#nbt').value});if(r.error)return alert('שגיאה: '+r.error.message);viewHR()}}
+  if(can){(async()=>{
+    const box=document.createElement('div');box.className='panel';box.id='reqbox';view.prepend(box);
+    const rq=await sb.from('sniff_staff_requests').select('*,sniff_branches(name)').eq('status','open').order('day');
+    const myIds=new Set(br.data.map(x=>x.id));
+    const KLx={morning:'בוקר',evening:'ערב',other:'אחר'};
+    const dt=d=>String(d).split('-').reverse().join('.');
+    let h='<h3>בקשות עזרה בעובדים</h3><button class="chip big pri" id="reqnew">בקשת עובד</button><div class="mode" id="reqform" hidden><label>סניף<select id="rqb">'+br.data.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')+'</select></label><label>יום<input type="date" id="rqd" value="'+day+'"></label><div class="lbl">משמרת</div><div class="seg kseg"><button type="button" class="chip big pri" data-rk="morning">בוקר</button><button type="button" class="chip big" data-rk="evening">ערב</button><button type="button" class="chip big" data-rk="other">אחר</button></div><input type="hidden" id="rqk" value="morning"><label>הערה<input id="rqn" placeholder="למשל: צהריים, 12:00-16:00"></label><button class="chip big pri" id="rqsave">פרסם בקשה</button></div>';
+    const list=rq.error?[]:(rq.data||[]);
+    h+=list.length?list.map(q=>{const mineReq=myIds.has(q.branch_id);const bn=(q.sniff_branches&&q.sniff_branches.name)||BN[q.branch_id]||'סניף אחר';
+      return `<div class="row" data-q="${q.id}"><b>${esc(bn)}</b> צריך עובד · ${dt(q.day)} · ${KLx[q.kind]||''}${q.note?' · '+esc(q.note):''}<div class="qact" data-mine="${mineReq?1:''}"></div></div>`}).join(''):'<div class="hint">אין בקשות פתוחות</div>';
+    box.innerHTML=h;
+    box.querySelector('#reqnew').onclick=()=>{const f=box.querySelector('#reqform');f.hidden=!f.hidden};
+    box.querySelectorAll('button[data-rk]').forEach(b=>b.onclick=()=>{box.querySelector('#rqk').value=b.dataset.rk;box.querySelectorAll('button[data-rk]').forEach(x=>x.classList.toggle('pri',x===b))});
+    box.querySelector('#rqsave').onclick=async()=>{const r=await sb.from('sniff_staff_requests').insert({branch_id:box.querySelector('#rqb').value,day:box.querySelector('#rqd').value,kind:box.querySelector('#rqk').value,note:box.querySelector('#rqn').value.trim()||null});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()};
+    for(const row of box.querySelectorAll('.row[data-q]')){const q=list.find(x=>x.id===row.dataset.q),act=row.querySelector('.qact');
+      if(act.dataset.mine){const o=await sb.rpc('sniff_request_offers',{p_request:q.id});const offs=o.error?[]:(o.data||[]);
+        act.innerHTML=offs.length?'<div class="hint">הוצעו:</div>'+offs.map(x=>`<div>${esc(x.name||x.person_name||'')}${x.branch_name?' · '+esc(x.branch_name):''} <button class="chip pri" data-pick="${x.person_id||x.id}">בחר</button></div>`).join(''):'<div class="hint">עוד לא הוצעו עובדים</div>';
+        act.querySelectorAll('button[data-pick]').forEach(b=>b.onclick=async()=>{const r=await sb.rpc('sniff_fill_request',{p_request:q.id,p_person:b.dataset.pick});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()})}
+      else{const cand=pp.data.filter(x=>x.branch_id!==q.branch_id);
+        act.innerHTML=cand.length?`<select class="qsel">${cand.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select> <button class="chip pri" data-offer="1">הצע עובד</button>`:'';
+        const ob=act.querySelector('[data-offer]');if(ob)ob.onclick=async()=>{const r=await sb.rpc('sniff_offer_for_request',{p_request:q.id,p_person:act.querySelector('.qsel').value});if(r.error)return alert('לא הצליח: '+r.error.message);alert('ההצעה נשלחה');viewHR()}}}
+  })()}
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
   view.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const m=b.closest('.mode');m.querySelector('.ksel').value=b.dataset.k;m.querySelectorAll('button[data-k]').forEach(x=>x.classList.toggle('pri',x===b));m.querySelector('.onote').hidden=b.dataset.k!=='other'});
   view.querySelectorAll('.panel').forEach(pn=>{const b=pn.querySelector('button[data-m]');if(b){const hasP=pn.querySelector('.psel');pn.querySelector(hasP?'button[data-m=shift]':'button[data-m=new]').click()}});
