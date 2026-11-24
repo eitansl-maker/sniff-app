@@ -317,10 +317,13 @@ async function viewLow(){
   <div class="mode"><button class="chip big pri" id="lwscan">📷 סרוק ברקוד</button><div class="hint" id="lwbc"></div><label>דגם<input id="lwt" list="lwl" placeholder="התחל להקליד שם דגם"><datalist id="lwl">${names.slice(0,3000).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label><label>מידה<input id="lws" inputmode="numeric"></label><label>צבע<input id="lwc"></label><label>הערה<input id="lwn"></label><button class="chip big pri" id="lwsave">סמן כאוזל</button></div></div>
   <div class="panel"><h3>רשימה להזמנה (${groups.length})</h3>${groups.length?groups.map(row).join(''):'<div class="hint">אין פריטים מסומנים</div>'}</div>`;
   if($('#lwb'))$('#lwb').onchange=e=>{L.branch=e.target.value;viewLow()};
-  let BC=null;
+  let BC=null,FIX=false;
   $('#lwscan').onclick=async()=>{const code=await scanBarcode();if(!code)return;BC=code;const vs=bcVariants(code);
     const f=await sb.from('sniff_barcodes').select('*').in('barcode',vs).limit(1);const row=!f.error&&f.data&&f.data[0];
-    if(row){$('#lwt').value=((row.brand?row.brand+' ':'')+(row.title||'')).trim();$('#lws').value=row.size||'';$('#lwc').value=row.color||'';$('#lwbc').textContent='✅ זוהה: '+code}
+    if(row){const nm=((row.brand?row.brand+' ':'')+(row.title||'')).trim();
+      $('#lwbc').innerHTML='<b>זוהה: '+esc(nm)+(row.size?' · מידה '+esc(row.size):'')+(row.color?' · '+esc(row.color):'')+'</b> <button class="chip pri" id="lwyes">✓ נכון</button> <button class="chip" id="lwno">✗ לא נכון, תקן</button>';
+      $('#lwyes').onclick=()=>{$('#lwt').value=nm;$('#lws').value=row.size||'';$('#lwc').value=row.color||'';$('#lwbc').textContent='✅ '+nm+(row.size?' מידה '+row.size:'')};
+      $('#lwno').onclick=()=>{BC=code;FIX=true;$('#lwt').value=nm;$('#lws').value='';$('#lwc').value=row.color||'';$('#lwbc').textContent='תקן את המידה/הדגם ושמור. העתק את המידה (EU) מהקופסה.';$('#lws').focus()}}
     else{const lk='<a class="chip" target="_blank" rel="noopener" href="https://www.weshoes.co.il/search?q='+encodeURIComponent(code)+'&type=product">🔎 חפש באתר WeShoes</a>';
       $('#lwbc').innerHTML='ברקוד חדש '+esc(code)+' <button class="chip pri" id="lwauto">⚡ זהה אוטומטית</button> '+lk+'<div class="sub" id="lwmsg"></div>';
       $('#lwauto').onclick=async()=>{const m=$('#lwmsg');m.textContent='מחפש...';
@@ -330,11 +333,11 @@ async function viewLow(){
         const cm=CAT.find(c=>c.url&&d.handle&&String(c.url).indexOf('/products/'+d.handle)>=0);
         const brand=cm?cm.brand:d.vendor,title=cm?cm.title:d.title;
         $('#lwt').value=((brand?brand+' ':'')+(title||'')).trim();
-        m.textContent='✅ זוהה: '+$('#lwt').value+'. מלא מידה ושמור.';$('#lws').focus()}}
+        m.textContent='✅ זוהה: '+$('#lwt').value+'. העתק את המידה (EU) מהקופסה ושמור.';$('#lws').focus()}}
   };
   $('#lwsave').onclick=async()=>{const t=$('#lwt').value.trim();if(!t)return alert('כתוב שם דגם');const m=CAT.find(c=>((c.brand?c.brand+' ':'')+c.title)===t);
     const r=await sb.from('sniff_lowstock').insert({branch_id:L.branch,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null,note:$('#lwn').value.trim()||null,marked_by_name:ME.name||null,...(BC?{barcode:BC}:{})});
-    if(!r.error&&BC){const bi=await sb.from('sniff_barcodes').upsert({org_id:ME.orgId,barcode:BC,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null},{onConflict:'org_id,barcode',ignoreDuplicates:true});void bi}
+    if(!r.error&&BC){const bi=await sb.from('sniff_barcodes').upsert({org_id:ME.orgId,barcode:BC,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null},{onConflict:'org_id,barcode',ignoreDuplicates:!FIX});void bi}
     if(r.error)return alert('לא הצליח: '+r.error.message);viewLow()};
   const upd=(attr,st)=>view.querySelectorAll('button[data-'+attr+']').forEach(b=>b.onclick=async()=>{const ids=b.dataset[attr].split(',').filter(Boolean);const r=await sb.from('sniff_lowstock').update({status:st,status_by:ME.userId,status_at:new Date().toISOString()}).in('id',ids);if(r.error)return alert('לא הצליח: '+r.error.message);viewLow()});
   upd('ord','ordered');upd('cls','closed');
