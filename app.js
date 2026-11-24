@@ -68,6 +68,7 @@ function brandCard(b,extra,m){
   const title=m?`${esc(b.he)} ${esc(m.name)}`:esc(b.he);
   const sub=m?`${esc(b.name)} · ${esc(b.type)}`:`${esc(b.name)} · ${esc(b.type)} · ${esc(b.origin)}`;
   return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
+const hasCat=b=>!CAT.length||brandCat(b).length>0;
 function viewSearch(){
   const tags=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
   view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"><button class="mic" id="clr" title="מחיקה" aria-label="מחיקה" hidden style="font-size:22px">✕</button><button class="mic" id="mic" title="חיפוש קולי" aria-label="חיפוש קולי">🎤</button></div>
@@ -77,11 +78,11 @@ function viewSearch(){
   const q=$('#q'),res=$('#res');
   const run=()=>{
     if(q.value.trim()){
-      const r=search(q.value);
+      const r=search(q.value).filter(x=>hasCat(x.b));
       const cr=searchCat(q.value);
       res.innerHTML=(r.length||cr.length)?(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':'')+(r.length?'<div class="hint">'+(cr.length?'מותגים קשורים':'התוצאות מסודרות לפי התאמה')+'</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     }else{
-      const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag)));
+      const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||(b.tags.includes(tag)&&hasCat(b))));
       res.innerHTML=`<div class="hint">${l.length} מותגים, בסדר א' ב'</div><div class="grid">${l.map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
     }
     bind()};
