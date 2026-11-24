@@ -92,13 +92,43 @@ function viewSales(){
   <div class="panel"><h2>עקרונות בסיס לאנשי השירות</h2><ul>${P.staff.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
   <div class="panel"><h2>עקרונות בסיס חנויות</h2><ul>${P.store.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
 }
+
+const KIND={morning:'בוקר',evening:'ערב'};
+const today=()=>new Date().toLocaleDateString('sv');
+async function viewHR(){
+  const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
+  const day=window.__hrDay||today();
+  const [br,pp,sh]=await Promise.all([sb.from('sniff_branches').select('id,name,number,org_id').order('name'),sb.from('sniff_people').select('*').eq('active',true).order('name'),sb.from('sniff_shifts').select('*').eq('day',day)]);
+  if(br.error||pp.error||sh.error){view.innerHTML='<div class="hint">שגיאה בטעינה, נסו שוב.</div>';return}
+  const can=['hq','manager','area_manager','format_manager'].includes(ME.role);
+  const P={};pp.data.forEach(x=>P[x.id]=x);
+  const st={planned:'',confirmed:' ✅',cant:' ❌ לא יכול'};
+  const contact=x=>`<span class="ppl"><b>${esc(x.name)}</b>${x.title?` <small>${esc(x.title)}</small>`:''}${x.phone?` <a class="call" href="tel:${esc(x.phone)}">📞 ${esc(x.phone)}</a>`:''}${x.email?` <a class="call" href="mailto:${esc(x.email)}">✉️</a>`:''}</span>`;
+  view.innerHTML=`<div class="hint">משמרות ליום <input type="date" id="hrday" value="${day}"></div>`+br.data.map(b=>{
+    const mine=pp.data.filter(x=>x.branch_id===b.id),s=sh.data.filter(x=>x.branch_id===b.id);
+    const col=k=>{const l=s.filter(x=>x.kind===k);return `<div class="shift"><b>${KIND[k]}</b> (${l.length})${l.length?l.map(x=>{const q=P[x.person_id];if(!q)return'';const me=q.user_id===ME.userId;return `<div class="row">${contact(q)}${st[x.status]}${me?` <button class="chip" data-a="ok" data-id="${x.id}">אני יכול</button><button class="chip" data-a="cant" data-id="${x.id}">לא יכול</button>`:''}${can?` <button class="chip" data-a="del" data-id="${x.id}">הסר</button>`:''}</div>`}).join(''):'<div class="hint">אין שיבוץ</div>'}</div>`};
+    return `<div class="panel"><h3>${esc(b.name)}${b.number?` · מס' ${esc(b.number)}`:''}</h3><div class="two">${col('morning')}${col('evening')}</div>
+    ${can?`<details><summary>שיבוץ והוספת עובד</summary>
+    <div class="form"><select data-b="${b.id}" class="psel">${mine.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select><select class="ksel"><option value="morning">בוקר</option><option value="evening">ערב</option></select><button class="chip" data-a="add" data-b="${b.id}">שבץ</button></div>
+    <div class="form"><input placeholder="שם" class="nm"><input placeholder="טלפון" class="ph" inputmode="tel"><input placeholder="מייל (לכניסה עם גוגל)" class="em" inputmode="email"><input placeholder="תפקיד" class="tt"><button class="chip" data-a="newp" data-b="${b.id}">הוסף עובד</button></div></details>`:''}
+    <details><summary>כל אנשי הצוות (${mine.length})</summary>${mine.map(x=>`<div class="row">${contact(x)}</div>`).join('')||'<div class="hint">עוד לא נוספו עובדים</div>'}</details></div>`}).join('')||'<div class="hint">אין סניפים להצגה</div>';
+  $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
+  view.querySelectorAll('button[data-a]').forEach(btn=>btn.onclick=async()=>{
+    const a=btn.dataset.a,box=btn.closest('.panel');let r;
+    if(a==='del')r=await sb.from('sniff_shifts').delete().eq('id',btn.dataset.id);
+    else if(a==='ok'||a==='cant')r=await sb.from('sniff_shifts').update({status:a==='ok'?'confirmed':'cant'}).eq('id',btn.dataset.id);
+    else if(a==='add'){const pid=box.querySelector('.psel').value;if(!pid)return alert('אין עובד לשיבוץ');r=await sb.from('sniff_shifts').insert({branch_id:btn.dataset.b,person_id:pid,day,kind:box.querySelector('.ksel').value})}
+    else if(a==='newp'){const n=box.querySelector('.nm').value.trim();if(!n)return;const org=br.data.find(x=>x.id===btn.dataset.b).org_id;r=await sb.from('sniff_people').insert({org_id:org,branch_id:btn.dataset.b,name:n,phone:box.querySelector('.ph').value.trim()||null,email:box.querySelector('.em').value.trim().toLowerCase()||null,title:box.querySelector('.tt').value.trim()||null})}
+    if(r&&r.error)alert('לא הצליח: '+r.error.message);else viewHR();
+  });
+}
 function bind(){document.querySelectorAll('.card[data-b]').forEach(c=>c.onclick=()=>{location.hash='#/brand/'+c.dataset.b})}
 function route(){
   const h=location.hash;
   if(h.startsWith('#/brand/'))return viewBrand(h.slice(8));
   const t=h.replace('#/','')||'search';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ({search:viewSearch,brands:viewBrands,sales:viewSales}[t]||viewSearch)();
+  ({search:viewSearch,brands:viewBrands,sales:viewSales,hr:viewHR}[t]||viewSearch)();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();

@@ -31,7 +31,7 @@ async function start(){
   window.SNIFF_BOOT(B,(pr.data&&pr.data.body)||{staff:[],store:[],stages:[],newModel:''},{
     name:mem.display_name||m.full_name||u.email,photo:m.avatar_url||m.picture||'',role:mem.role,title:mem.title,
     orgName:mem.sniff_orgs&&mem.sniff_orgs.name,branchName:mem.sniff_branches&&mem.sniff_branches.name,branchNumber:mem.sniff_branches&&mem.sniff_branches.number,
-    logout:async()=>{await sb.auth.signOut();location.hash='';location.reload()}});
+    sb,userId:u.id,logout:async()=>{await sb.auth.signOut();location.hash='';location.reload()}});
 }
 start();
 })();

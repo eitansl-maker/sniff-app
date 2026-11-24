@@ -55,6 +55,8 @@ main{max-width:900px;margin:0 auto;padding:16px}
 .stage .n{flex:none;width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:700}
 .toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin:6px 4px}
 .gate{text-align:center}.chip.big{font-size:16px;padding:10px 24px;background:var(--blue);color:#fff;border-color:var(--blue)}img.avatar{object-fit:cover}
+.call{margin-inline-start:6px;color:var(--blue);text-decoration:none;font-size:13px}.row{padding:6px 0;border-top:1px solid var(--line)}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.form input,.form select,#hrday{font:inherit;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}details{margin-top:10px}
+@media(max-width:560px){.two{grid-template-columns:1fr}}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </style>
 </head>
@@ -68,6 +70,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
   <button data-t="search" class="on">חיפוש חכם</button>
   <button data-t="brands">מותגים</button>
   <button data-t="sales">עקרונות מכירה</button>
+  <button data-t="hr">כוח אדם</button>
 </nav>
 <div id="gate" hidden style="max-width:520px;margin:40px auto;padding:16px"></div>
 <main id="view"></main>
