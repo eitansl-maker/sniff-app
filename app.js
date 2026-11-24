@@ -27,7 +27,8 @@ function stems(w){const o=[w];for(const p of PREF){if(w.startsWith(p)&&w.length-
 function norm(s){return s.replace(/[׳'"״]/g,'').toLowerCase()}
 function haystack(b,m){return norm([b.name,b.he,b.type,b.origin,b.audience,(b.tags||[]).join(' '),(b.points||[]).join(' '),m?m.name+' '+m.audience+' '+(m.tags||[]).join(' '):''].join(' '))}
 function search(q){
-  const words=norm(q).split(/[\s,.;!?]+/).filter(Boolean);
+  const STOP=new Set(['מוצר','מוצרים','נעל','נעלי','נעליים','מותג','מותגים','דגם','דגמים','של','עם','בלי','או','גם','לי','אני','רוצה','מחפש','מחפשת','צריך','צריכה','יש','לך','את','אותו']);
+  const words=norm(q).split(/[\s,.;!?]+/).filter(w=>w&&!STOP.has(w));
   if(!words.length)return[];
   const out=[];
   B.forEach(b=>{
@@ -38,7 +39,8 @@ function search(q){
         let got=false;
         stems(w).forEach(st=>{
           const terms=[st].concat((SYN[st]||[]).map(norm));
-          terms.forEach(t=>{if(hs.includes(t)){score+= (t===st?2:1.5)+(it.m&&norm(it.m.name+' '+it.m.audience).includes(t)?1:0);got=true}})
+          terms.forEach(t=>{const hay=(st==='ישראלי'||st==='ישראל')?norm(((b.tags||[]).join(' '))+' '+(b.origin||'')):hs;if(st==='ישראלי'||st==='ישראל'){if(!(((b.tags||[]).includes('ישראלי'))||/ישראל/.test(b.origin||'')))return}
+          if(hay.includes(t)){score+= (t===st?2:1.5)+(it.m&&norm(it.m.name+' '+it.m.audience).includes(t)?1:0);got=true}})
         });
         if(got)hits++;
       });
@@ -46,6 +48,7 @@ function search(q){
     });
   });
   out.sort((x,y)=>y.score-x.score);
+  const full=out.filter(r=>r.hits===r.of);if(full.length){out.length=0;out.push(...full)}
   const seen=new Set();return out.filter(r=>{const k=r.b.id+'|'+(r.m?r.m.name:'');if(seen.has(k))return false;seen.add(k);return showInactive||r.b.status==='active'}).slice(0,12);
 }
 const HUES=[[37,99,235],[124,58,237],[219,39,119],[234,88,12],[5,150,105],[8,145,178],[202,138,4]];
