@@ -24,7 +24,7 @@ const SYN={
  'כביסה':['מכונת כביסה'],'ישראלי':['ישראלי'],'גברים':['גברים'],'נשים':['נשים'],'גורטקס':['גורטקס'],'קרם':['טיפוח']
 };
 const PREF=['וה','ול','וב','ש','ה','ל','ב','ו','כ','מ'];
-function stems(w){const o=[w];for(const p of PREF){if(w.startsWith(p)&&w.length-p.length>=2)o.push(w.slice(p.length))}return o}
+function stems(w){const o=[w];for(const p of PREF){if(w.startsWith(p)&&w.length-p.length>=(p.length===1?4:3))o.push(w.slice(p.length))}return o}
 function norm(s){return s.replace(/[׳'"״]/g,'').toLowerCase()}
 function haystack(b,m){return norm([b.name,b.he,b.type,b.origin,b.audience,(b.tags||[]).join(' '),(b.points||[]).join(' '),m?m.name+' '+m.audience+' '+(m.tags||[]).join(' '):''].join(' '))}
 const CAT=ME.catalog||[];
@@ -76,7 +76,7 @@ function viewSearch(){
     if(q.value.trim()){
       const r=search(q.value);
       const cr=searchCat(q.value);
-      res.innerHTML=(r.length||cr.length)?(r.length?'<div class="hint">התוצאות מסודרות לפי התאמה</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'')+(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+      res.innerHTML=(r.length||cr.length)?(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':'')+(r.length?'<div class="hint">'+(cr.length?'מותגים קשורים':'התוצאות מסודרות לפי התאמה')+'</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     }else{
       const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag)));
       res.innerHTML=`<div class="hint">${l.length} מותגים, בסדר א' ב'</div><div class="grid">${l.map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
