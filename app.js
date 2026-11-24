@@ -3,8 +3,9 @@ const C=window.SNIFF_CONFIG;
 const $=s=>document.querySelector(s),view=$('#view');
 document.title=C.appName;$('#ver').textContent='גרסה '+C.version;$('#appName').textContent=C.appName;
 $('#branchBox').innerHTML=`<b>${esc(ME.branchName||'מטה')}${ME.branchNumber?` · מס' ${esc(ME.branchNumber)}`:''}</b><br>${esc(ME.orgName||'')}`;
-$('#userBox').innerHTML=(ME.photo?`<img class="avatar" src="${esc(ME.photo)}" alt="">`:`<div class="avatar">${esc((ME.name||'?')[0])}</div>`)+`<span>${esc(ME.name||'')}${ME.title?`<br><small>${esc(ME.title)}</small>`:''}</span><button class="chip" id="logout">יציאה</button>`;
+$('#userBox').innerHTML=(ME.photo?`<img class="avatar" src="${esc(ME.photo)}" alt="">`:`<div class="avatar">${esc((ME.name||'?')[0])}</div>`)+`<span>${esc(ME.name||'')}${ME.title?`<br><small>${esc(ME.title)}</small>`:''}</span><button class="chip" id="share" title="שיתוף">שיתוף ⤴</button><button class="chip" id="logout">יציאה</button>`;
 $('#logout').onclick=ME.logout;
+$('#share').onclick=async()=>{const d={title:'סניף',text:'האפליקציה של הצוות, כניסה עם Google למי שאושר:',url:location.origin+location.pathname};try{if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(d.url);alert('הקישור הועתק')}}catch(e){}};
 let showInactive=false,tag=null;
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
