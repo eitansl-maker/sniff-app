@@ -321,7 +321,19 @@ async function viewLow(){
   $('#lwscan').onclick=async()=>{const code=await scanBarcode();if(!code)return;BC=code;const vs=bcVariants(code);
     const f=await sb.from('sniff_barcodes').select('*').in('barcode',vs).limit(1);const row=!f.error&&f.data&&f.data[0];
     if(row){$('#lwt').value=((row.brand?row.brand+' ':'')+(row.title||'')).trim();$('#lws').value=row.size||'';$('#lwc').value=row.color||'';$('#lwbc').textContent='✅ זוהה: '+code}
-    else $('#lwbc').innerHTML='ברקוד חדש '+esc(code)+': בחר דגם, מידה וצבע ושמור. בפעם הבאה הוא יזוהה לבד. <a class="chip" target="_blank" rel="noopener" href="https://www.weshoes.co.il/search?q='+encodeURIComponent(code)+'&type=product">🔎 חפש באתר WeShoes</a>'};
+    else{const lk='<a class="chip" target="_blank" rel="noopener" href="https://www.weshoes.co.il/search?q='+encodeURIComponent(code)+'&type=product">🔎 חפש באתר WeShoes</a>';
+      $('#lwbc').innerHTML='ברקוד חדש '+esc(code)+' <button class="chip pri" id="lwauto">⚡ זהה אוטומטית</button> '+lk+'<div class="sub" id="lwmsg"></div>';
+      $('#lwauto').onclick=async()=>{const m=$('#lwmsg');m.textContent='מחפש...';
+        let r;try{r=await sb.functions.invoke('barcode-lookup',{body:{code}})}catch(e){r={error:e}}
+        const d=r&&r.data;
+        if(!d||!d.found){m.innerHTML='לא הצלחתי לזהות אוטומטית. אפשר לבחור ידנית או ללחוץ "חפש באתר".';return}
+        const cm=CAT.find(c=>c.url&&d.handle&&String(c.url).indexOf('/products/'+d.handle)>=0);
+        const brand=cm?cm.brand:d.vendor,title=cm?cm.title:d.title;
+        $('#lwt').value=((brand?brand+' ':'')+(title||'')).trim();$('#lws').value=(d.matched&&d.matched.size)||'';$('#lwc').value=(d.matched&&d.matched.color)||'';
+        m.textContent='✅ זוהה: '+$('#lwt').value+(d.matched&&d.matched.size?' מידה '+d.matched.size:'');
+        const rows=(d.variants||[]).map(v=>({org_id:ME.orgId,barcode:v.barcode,brand:brand||null,title:title||null,model_code:cm?cm.model_code:null,size:v.size,color:v.color,sku:v.sku}));
+        if(rows.length)sb.from('sniff_barcodes').upsert(rows,{onConflict:'org_id,barcode',ignoreDuplicates:true}).then(()=>{})}}
+  };
   $('#lwsave').onclick=async()=>{const t=$('#lwt').value.trim();if(!t)return alert('כתוב שם דגם');const m=CAT.find(c=>((c.brand?c.brand+' ':'')+c.title)===t);
     const r=await sb.from('sniff_lowstock').insert({branch_id:L.branch,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null,note:$('#lwn').value.trim()||null,marked_by_name:ME.name||null,...(BC?{barcode:BC}:{})});
     if(!r.error&&BC){const bi=await sb.from('sniff_barcodes').upsert({org_id:ME.orgId,barcode:BC,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null},{onConflict:'org_id,barcode',ignoreDuplicates:true});void bi}
