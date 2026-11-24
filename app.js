@@ -68,7 +68,7 @@ function brandCard(b,extra,m){
   const title=m?`${esc(b.he)} ${esc(m.name)}`:esc(b.he);
   const sub=m?`${esc(b.name)} · ${esc(b.type)}`:`${esc(b.name)} · ${esc(b.type)} · ${esc(b.origin)}`;
   return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
-const hasCat=b=>!CAT.length||brandCat(b).length>0;
+const hasCat=b=>!CAT.length||(b.models||[]).length>0||brandCat(b).length>0;
 function viewSearch(){
   const tags=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
   view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"><button class="mic" id="clr" title="מחיקה" aria-label="מחיקה" hidden style="font-size:22px">✕</button><button class="mic" id="mic" title="חיפוש קולי" aria-label="חיפוש קולי">🎤</button></div>
