@@ -92,7 +92,13 @@ main{max-width:900px;margin:12px auto 0;padding:0 16px}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
 .mic{border:0;background:var(--blue-soft);font-size:20px;width:42px;height:42px;border-radius:50%;cursor:pointer}.mic.rec{background:var(--red);animation:pulse 1.2s infinite}
 #install{display:none;margin:0 0 12px}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+main{min-height:100vh}
+footer{background:#111;color:#fff;text-align:center;font-size:12px;padding:28px 16px 110px;margin-top:30px;border-top:4px solid transparent;border-image:linear-gradient(90deg,#be123c,#ffe600) 1}
+footer .fw{font-size:34px;font-weight:800;letter-spacing:3px;margin-bottom:14px}
+footer .fs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:520px;margin:0 auto 16px}
+footer .fs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:0;background:#fff}
+footer .ft{color:rgba(255,255,255,.7);margin-bottom:12px}
+footer .chip{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
 @media(max-width:560px){.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -110,7 +116,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 <div id="gate" hidden style="max-width:520px;margin:40px auto;padding:16px"></div>
 <main id="view"></main>
 <div style="text-align:center"><button class="chip big pri" id="install">📲 התקנה כאפליקציה</button></div>
-<footer>סניף · מידע מקצועי לצוות<br><button class="chip" id="logout2" style="margin-top:10px">יציאה מהחשבון</button></footer>
+<footer id="foot"><div class="fw">WeShoes</div><div class="fs" id="fshoes"></div><div class="ft">סניף · מידע מקצועי לצוות</div><button class="chip" id="logout2">יציאה מהחשבון</button></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
