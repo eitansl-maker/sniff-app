@@ -4,11 +4,11 @@ const $=s=>document.querySelector(s),view=$('#view');
 document.title=C.appName;$('#ver').textContent='גרסה '+C.version;$('#appName').textContent=C.appName;
 $('#branchBox').innerHTML=`<b>${esc(ME.branchName||'מטה')}${ME.branchType==='outlet'?' · אאוטלט':''}${ME.branchNumber?` · מס' ${esc(ME.branchNumber)}`:''}</b> <small>${esc(ME.orgName||'')}</small>`;
 const av=ME.photo?`<img class="avatar" src="${esc(ME.photo)}" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<div class=avatar>'+this.dataset.l+'</div>'" data-l="${esc((ME.name||'?')[0])}">`:`<div class="avatar">${esc((ME.name||'?')[0])}</div>`;
-$('#userBox').innerHTML=`<button class="avbtn" id="avbtn" aria-label="תפריט משתמש">${av}</button><div class="umenu" id="umenu" hidden><b>${esc(ME.name||'')}</b>${ME.title?`<small>${esc(ME.title)}</small>`:''}<small>${esc(ME.email||'')}</small><button class="chip" id="share" title="שיתוף">שיתוף ⤴</button><button class="chip" id="logout">יציאה</button></div>`;
+$('#userBox').innerHTML=`<button class="avbtn" id="avbtn" aria-label="תפריט משתמש">${av}<span class="caret">▾</span></button><div class="umenu" id="umenu" hidden><b>${esc(ME.name||'')}</b>${ME.title?`<small>${esc(ME.title)}</small>`:''}<small>${esc(ME.email||'')}</small><button class="chip" id="share" title="שיתוף">שיתוף ⤴</button><button class="chip" id="logout">יציאה</button></div>`;
 $('#avbtn').onclick=e=>{e.stopPropagation();$('#umenu').hidden=!$('#umenu').hidden};
 document.addEventListener('click',e=>{const m=$('#umenu');if(m&&!m.hidden&&!m.contains(e.target))m.hidden=true});
 let lastY=0;window.addEventListener('scroll',()=>{const y=window.scrollY,h=document.querySelector('header');if(y>lastY+8&&y>80)h.classList.add('hide');else if(y<lastY-8||y<20)h.classList.remove('hide');lastY=y},{passive:true});
-$('#logout').onclick=ME.logout;
+$('#logout').onclick=ME.logout;if($('#logout2'))$('#logout2').onclick=ME.logout;
 $('#share').onclick=async()=>{const d={title:'סניף',text:'האפליקציה של הצוות, כניסה עם Google למי שאושר:',url:location.origin+location.pathname};try{if(navigator.share)await navigator.share(d);else{await navigator.clipboard.writeText(d.url);alert('הקישור הועתק')}}catch(e){}};
 let showInactive=false,tag=null;
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
