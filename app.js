@@ -48,9 +48,11 @@ function search(q){
   out.sort((x,y)=>y.score-x.score);
   const seen=new Set();return out.filter(r=>{const k=r.b.id+'|'+(r.m?r.m.name:'');if(seen.has(k))return false;seen.add(k);return showInactive||r.b.status==='active'}).slice(0,12);
 }
-function brandCard(b,extra){
+function brandCard(b,extra,m){
   const off=b.status==='inactive';
-  return `<div class="card ${off?'off':''}" data-b="${b.id}"><h3>${esc(b.he)} <span class="sub">${esc(b.name)}</span>${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${esc(b.type)} · ${esc(b.origin)}</div><p>${esc(b.audience)}</p>${extra||''}</div>`}
+  const title=m?`${esc(b.he)} ${esc(m.name)}`:esc(b.he);
+  const sub=m?`${esc(b.name)} · ${esc(b.type)}`:`${esc(b.name)} · ${esc(b.type)} · ${esc(b.origin)}`;
+  return `<div class="card ${off?'off':''}" data-b="${b.id}"><h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div>`}
 function viewSearch(){
   view.innerHTML=`<div class="search"><span>🔎</span><input id="q" placeholder='למשל: נעלי ריצה לילדה, סנדל עמיד במים, נעל לכאבי רגליים' autocomplete="off"></div>
   <div class="chips">${['נעלי ריצה','סנדל עמיד במים','מגפי חורף','תמיכה בקשת','רגל רחבה','טבעוני','תיק גב','נעל קלה מאוד'].map(x=>`<button class="chip" data-q="${x}">${x}</button>`).join('')}</div>
@@ -59,7 +61,7 @@ function viewSearch(){
   const q=$('#q'),res=$('#res');
   const run=()=>{const r=search(q.value);
     if(!q.value.trim()){res.innerHTML='';return}
-    res.innerHTML=r.length?r.map(x=>`<div class="result">${brandCard(x.b,x.m?`<div class="tags"><span class="tag">דגם: ${esc(x.m.name)}</span></div><p><b>${esc(x.m.name)}:</b> ${esc(x.m.audience)}</p>`:'')}</div>`).join(''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+    res.innerHTML=r.length?r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     bind()};
   q.addEventListener('input',run);
   document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{q.value=c.dataset.q;run()});
