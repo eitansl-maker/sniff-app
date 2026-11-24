@@ -174,13 +174,15 @@ async function viewHR(){
     box.querySelector('#reqnew').onclick=()=>{const f=box.querySelector('#reqform');f.hidden=!f.hidden};
     box.querySelectorAll('button[data-rk]').forEach(b=>b.onclick=()=>{box.querySelector('#rqk').value=b.dataset.rk;box.querySelectorAll('button[data-rk]').forEach(x=>x.classList.toggle('pri',x===b))});
     box.querySelector('#rqsave').onclick=async()=>{const r=await sb.from('sniff_staff_requests').insert({branch_id:box.querySelector('#rqb').value,day:box.querySelector('#rqd').value,kind:box.querySelector('#rqk').value,note:box.querySelector('#rqn').value.trim()||null});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()};
-    for(const row of box.querySelectorAll('.row[data-q]')){const q=list.find(x=>x.id===row.dataset.q),act=row.querySelector('.qact');
+    for(const row of box.querySelectorAll('.row[data-q]')){const q=list.find(x=>x.id===row.dataset.q),act=row.querySelector('.qact');let html='';
       if(act.dataset.mine){const o=await sb.rpc('sniff_request_offers',{p_request:q.id});const offs=o.error?[]:(o.data||[]);
-        act.innerHTML=offs.length?'<div class="hint">הוצעו:</div>'+offs.map(x=>`<div>${esc(x.name||x.person_name||'')}${x.branch_name?' · '+esc(x.branch_name):''} <button class="chip pri" data-pick="${x.person_id||x.id}">בחר</button></div>`).join(''):'<div class="hint">עוד לא הוצעו עובדים</div>';
-        act.querySelectorAll('button[data-pick]').forEach(b=>b.onclick=async()=>{const r=await sb.rpc('sniff_fill_request',{p_request:q.id,p_person:b.dataset.pick});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()})}
-      else{const cand=pp.data.filter(x=>x.branch_id!==q.branch_id);
-        act.innerHTML=cand.length?`<select class="qsel">${cand.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select> <button class="chip pri" data-offer="1">הצע עובד</button>`:'';
-        const ob=act.querySelector('[data-offer]');if(ob)ob.onclick=async()=>{const r=await sb.rpc('sniff_offer_for_request',{p_request:q.id,p_person:act.querySelector('.qsel').value});if(r.error)return alert('לא הצליח: '+r.error.message);alert('ההצעה נשלחה');viewHR()}}}
+        html+=offs.length?'<div class="hint">הוצעו:</div>'+offs.map(x=>`<div>${esc(x.name||x.person_name||'')}${x.branch_name?' · '+esc(x.branch_name):''} <button class="chip pri" data-pick="${x.person_id||x.id}">בחר</button></div>`).join(''):'<div class="hint">עוד לא הוצעו עובדים</div>'}
+      const cand=pp.data.filter(x=>x.branch_id!==q.branch_id);
+      html+=cand.length?`<div class="offer"><select class="qsel">${cand.map(x=>`<option value="${x.id}">${esc(x.name)}${BN[x.branch_id]?' · '+esc(BN[x.branch_id]):''}</option>`).join('')}</select> <button class="chip pri" data-offer="1">הצע עובד לבקשה</button></div>`:'';
+      act.innerHTML=html;
+      act.querySelectorAll('button[data-pick]').forEach(b=>b.onclick=async()=>{const r=await sb.rpc('sniff_fill_request',{p_request:q.id,p_person:b.dataset.pick});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()});
+      const ob=act.querySelector('[data-offer]');if(ob)ob.onclick=async()=>{const r=await sb.rpc('sniff_offer_for_request',{p_request:q.id,p_person:act.querySelector('.qsel').value});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()}}
+    const rows=[...box.querySelectorAll('.row[data-q]')];if(rows.length>4){rows.slice(4).forEach(r=>r.hidden=true);const more=document.createElement('button');more.className='chip big';more.textContent='הצג עוד '+(rows.length-4)+' בקשות';more.onclick=()=>{rows.forEach(r=>r.hidden=false);more.remove()};box.appendChild(more)}
   })()}
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
   view.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const m=b.closest('.mode');m.querySelector('.ksel').value=b.dataset.k;m.querySelectorAll('button[data-k]').forEach(x=>x.classList.toggle('pri',x===b));m.querySelector('.onote').hidden=b.dataset.k!=='other'});
