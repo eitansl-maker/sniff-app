@@ -17,6 +17,7 @@ async function start(){
   if(!session)return loginScreen();
   const u=session.user;
   await sb.rpc('sniff_claim_invite');
+  try{await sb.rpc('sniff_touch',{p_avatar:(u.user_metadata&&(u.user_metadata.avatar_url||u.user_metadata.picture))||null})}catch(e){}
   const {data:mem}=await sb.from('sniff_members').select('role,title,display_name,org_id,branch_id,sniff_orgs(name),sniff_branches(name,number)').eq('user_id',u.id).maybeSingle();
   if(!mem)return deniedScreen(u.email||'');
   const [br,pr]=await Promise.all([
