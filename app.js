@@ -1,7 +1,7 @@
 window.SNIFF_BOOT=function(B,P,ME){
 const C=window.SNIFF_CONFIG;
 const $=s=>document.querySelector(s),view=$('#view');
-document.title=C.appName;$('#appName').textContent=C.appName;
+document.title=C.appName;$('#ver').textContent='גרסה '+C.version;$('#appName').textContent=C.appName;
 $('#branchBox').innerHTML=`<b>${esc(ME.branchName||'מטה')}${ME.branchNumber?` · מס' ${esc(ME.branchNumber)}`:''}</b><br>${esc(ME.orgName||'')}`;
 $('#userBox').innerHTML=(ME.photo?`<img class="avatar" src="${esc(ME.photo)}" alt="">`:`<div class="avatar">${esc((ME.name||'?')[0])}</div>`)+`<span>${esc(ME.name||'')}${ME.title?`<br><small>${esc(ME.title)}</small>`:''}</span><button class="chip" id="logout">יציאה</button>`;
 $('#logout').onclick=ME.logout;
