@@ -321,7 +321,7 @@ async function viewLow(){
   $('#lwscan').onclick=async()=>{const code=await scanBarcode();if(!code)return;BC=code;const vs=bcVariants(code);
     const f=await sb.from('sniff_barcodes').select('*').in('barcode',vs).limit(1);const row=!f.error&&f.data&&f.data[0];
     if(row){$('#lwt').value=((row.brand?row.brand+' ':'')+(row.title||'')).trim();$('#lws').value=row.size||'';$('#lwc').value=row.color||'';$('#lwbc').textContent='✅ זוהה: '+code}
-    else $('#lwbc').textContent='ברקוד חדש '+code+': בחר דגם, מידה וצבע ושמור. בפעם הבאה הוא יזוהה לבד.'};
+    else $('#lwbc').innerHTML='ברקוד חדש '+esc(code)+': בחר דגם, מידה וצבע ושמור. בפעם הבאה הוא יזוהה לבד. <a class="chip" target="_blank" rel="noopener" href="https://www.weshoes.co.il/search?q='+encodeURIComponent(code)+'&type=product">🔎 חפש באתר WeShoes</a>'};
   $('#lwsave').onclick=async()=>{const t=$('#lwt').value.trim();if(!t)return alert('כתוב שם דגם');const m=CAT.find(c=>((c.brand?c.brand+' ':'')+c.title)===t);
     const r=await sb.from('sniff_lowstock').insert({branch_id:L.branch,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null,note:$('#lwn').value.trim()||null,marked_by_name:ME.name||null,...(BC?{barcode:BC}:{})});
     if(!r.error&&BC){const bi=await sb.from('sniff_barcodes').upsert({org_id:ME.orgId,barcode:BC,brand:m?m.brand:null,title:m?m.title:t,model_code:m?m.model_code:null,size:$('#lws').value.trim()||null,color:$('#lwc').value.trim()||null},{onConflict:'org_id,barcode',ignoreDuplicates:true});void bi}
