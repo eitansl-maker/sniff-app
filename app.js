@@ -125,6 +125,7 @@ async function viewHR(){
     <details><summary>כל אנשי הצוות (${mine.length})</summary>${mine.map(x=>`<div class="row">${contact(x)}</div>`).join('')||'<div class="hint">עוד לא נוספו עובדים</div>'}</details></div>`}).join('')||'<div class="hint">אין סניפים להצגה</div>';
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
   view.querySelectorAll('.ksel').forEach(k=>k.onchange=()=>{k.closest('.mode').querySelector('.onote').hidden=k.value!=='other'});
+  view.querySelectorAll('.panel').forEach(pn=>{const b=pn.querySelector('button[data-m]');if(b){const hasP=pn.querySelector('.psel');pn.querySelector(hasP?'button[data-m=shift]':'button[data-m=new]').click()}});
   $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
   view.querySelectorAll('button[data-a]').forEach(btn=>btn.onclick=async()=>{
     const a=btn.dataset.a,box=btn.closest('.panel');let r;
