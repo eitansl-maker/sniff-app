@@ -127,6 +127,9 @@ function viewSales(){
 }
 
 const KIND={morning:'בוקר',evening:'ערב',other:'אחר'};
+const DEVH='49f9a8de9117cee6db1894e052090e81f79a64f2debf552a48dd59beab6aca13';
+let IS_DEV=false;
+crypto.subtle.digest('SHA-256',new TextEncoder().encode((ME.email||'').toLowerCase())).then(b=>{IS_DEV=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')===DEVH;if(IS_DEV)route()}).catch(()=>{});
 const today=()=>new Date().toLocaleDateString('sv');
 async function viewHR(){
   const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
@@ -160,7 +163,7 @@ async function viewHR(){
   if(ME.role==='hq'){view.insertAdjacentHTML('beforeend',`<div class="panel"><h3>סניף חדש</h3><div class="mode"><label>שם הסניף<input id="nbn"></label><label>מספר סניף<input id="nbno" inputmode="numeric"></label><div class="lbl">סוג סניף</div><div class="seg kseg"><button type="button" class="chip big pri" data-bt="regular">רגיל</button><button type="button" class="chip big" data-bt="outlet">אאוטלט</button></div><input type="hidden" id="nbt" value="regular"><button class="chip big pri" id="nbsave">שמור סניף</button></div></div>`);
     view.querySelectorAll('button[data-bt]').forEach(b=>b.onclick=()=>{$('#nbt').value=b.dataset.bt;view.querySelectorAll('button[data-bt]').forEach(x=>x.classList.toggle('pri',x===b))});
     $('#nbsave').onclick=async()=>{const n=$('#nbn').value.trim();if(!n)return;const org=(br.data[0]||{}).org_id;if(!org)return alert('אין ארגון');const r=await sb.from('sniff_branches').insert({org_id:org,name:n,number:$('#nbno').value.trim()||null,branch_type:$('#nbt').value});if(r.error)return alert('שגיאה: '+r.error.message);viewHR()}}
-  view.insertAdjacentHTML('afterbegin','<div class="hint"><a class="call" href="#/cal">🗓 לוח שבועי / חודשי (ניסוי)</a></div>');
+  if(IS_DEV)view.insertAdjacentHTML('afterbegin','<div class="hint">🛠 מצב מפתח: <a class="call" href="#/cal">🗓 לוח שבועי / חודשי (ניסוי)</a></div>');
   if(can){(async()=>{
     const box=document.createElement('div');box.className='panel';box.id='reqbox';view.prepend(box);
     const rq=await sb.from('sniff_staff_requests').select('*,sniff_branches(name)').eq('status','open').order('day');
@@ -220,6 +223,7 @@ window.__cal=window.__cal||{mode:'week',anchor:null,branch:null};
 const iso=d=>d.toLocaleDateString('sv');
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 async function viewCal(){
+  if(!IS_DEV){view.innerHTML='<div class="hint">המסך הזה פתוח רק למפתח.</div>';return}
   const sb=ME.sb,C=window.__cal;if(!C.anchor)C.anchor=iso(new Date());
   view.innerHTML='<div class="hint">טוען...</div>';
   const a=new Date(C.anchor+'T12:00:00');let from,to;
