@@ -160,6 +160,7 @@ async function viewHR(){
   if(ME.role==='hq'){view.insertAdjacentHTML('beforeend',`<div class="panel"><h3>סניף חדש</h3><div class="mode"><label>שם הסניף<input id="nbn"></label><label>מספר סניף<input id="nbno" inputmode="numeric"></label><div class="lbl">סוג סניף</div><div class="seg kseg"><button type="button" class="chip big pri" data-bt="regular">רגיל</button><button type="button" class="chip big" data-bt="outlet">אאוטלט</button></div><input type="hidden" id="nbt" value="regular"><button class="chip big pri" id="nbsave">שמור סניף</button></div></div>`);
     view.querySelectorAll('button[data-bt]').forEach(b=>b.onclick=()=>{$('#nbt').value=b.dataset.bt;view.querySelectorAll('button[data-bt]').forEach(x=>x.classList.toggle('pri',x===b))});
     $('#nbsave').onclick=async()=>{const n=$('#nbn').value.trim();if(!n)return;const org=(br.data[0]||{}).org_id;if(!org)return alert('אין ארגון');const r=await sb.from('sniff_branches').insert({org_id:org,name:n,number:$('#nbno').value.trim()||null,branch_type:$('#nbt').value});if(r.error)return alert('שגיאה: '+r.error.message);viewHR()}}
+  view.insertAdjacentHTML('afterbegin','<div class="hint"><a class="call" href="#/cal">🗓 לוח שבועי / חודשי (ניסוי)</a></div>');
   if(can){(async()=>{
     const box=document.createElement('div');box.className='panel';box.id='reqbox';view.prepend(box);
     const rq=await sb.from('sniff_staff_requests').select('*,sniff_branches(name)').eq('status','open').order('day');
@@ -213,12 +214,48 @@ async function viewHR(){
   });
 }
 function bind(){document.querySelectorAll('.card[data-b]').forEach(c=>c.onclick=()=>{location.hash='#/brand/'+c.dataset.b})}
+
+// ===== לוח שבועי/חודשי (ניסוי, לקריאה בלבד) =====
+window.__cal=window.__cal||{mode:'week',anchor:null,branch:null};
+const iso=d=>d.toLocaleDateString('sv');
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+async function viewCal(){
+  const sb=ME.sb,C=window.__cal;if(!C.anchor)C.anchor=iso(new Date());
+  view.innerHTML='<div class="hint">טוען...</div>';
+  const a=new Date(C.anchor+'T12:00:00');let from,to;
+  if(C.mode==='day'){from=a;to=a}
+  else if(C.mode==='week'){from=addD(a,-a.getDay());to=addD(from,6)}
+  else{from=new Date(a.getFullYear(),a.getMonth(),1,12);to=new Date(a.getFullYear(),a.getMonth()+1,0,12)}
+  const [br,pp,sh]=await Promise.all([sb.from('sniff_branches').select('id,name,branch_type').order('name'),sb.from('sniff_people').select('id,name,branch_id,active').order('name'),sb.from('sniff_shifts').select('*').gte('day',iso(from)).lte('day',iso(to))]);
+  if(br.error||pp.error||sh.error){view.innerHTML='<div class="hint">שגיאה בטעינה.</div>';return}
+  br.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));
+  if(!C.branch||!br.data.some(b=>b.id===C.branch))C.branch=(br.data[0]||{}).id;
+  const bid=C.branch,P={};pp.data.forEach(x=>P[x.id]=x);
+  const S=sh.data.filter(x=>x.branch_id===bid&&x.status!=='cant');
+  const days=[];for(let d=new Date(from);d<=to;d=addD(d,1))days.push(iso(d));
+  const HD=['א','ב','ג','ד','ה','ו','ש'];
+  const mark=(k,st)=>({morning:'☀️',evening:'🌙',other:'✱'}[k]||'')+(st==='requested'?'⏳':'');
+  const title=C.mode==='month'?a.toLocaleDateString('he-IL',{month:'long',year:'numeric'}):C.mode==='week'?from.toLocaleDateString('he-IL',{day:'numeric',month:'short'})+' – '+to.toLocaleDateString('he-IL',{day:'numeric',month:'short'}):a.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
+  let body='';
+  if(C.mode==='month'){
+    body='<div class="calgrid month">'+HD.map(h=>`<div class="ch">${h}</div>`).join('')+Array(from.getDay()).fill('<div></div>').join('')+days.map(d=>{const l=S.filter(x=>x.day===d);const m=l.filter(x=>x.kind==='morning').length,e=l.filter(x=>x.kind==='evening').length;return `<div class="cd ${d===iso(new Date())?'today':''}" data-d="${d}"><b>${+d.slice(8)}</b>${m?`<div>☀️${m}</div>`:''}${e?`<div>🌙${e}</div>`:''}</div>`}).join('')+'</div>'
+  }else{
+    const ids=[...new Set([...pp.data.filter(x=>x.branch_id===bid&&x.active!==false).map(x=>x.id),...S.map(x=>x.person_id)])].map(i=>P[i]).filter(Boolean).sort((x,y)=>x.name.localeCompare(y.name,'he'));
+    body=`<div class="calwrap"><table class="caltab"><thead><tr><th></th>${days.map(d=>{const dt=new Date(d+'T12:00:00');return `<th class="${d===iso(new Date())?'today':''}" data-d="${d}">${HD[dt.getDay()]}<br><small>${+d.slice(8)}</small></th>`}).join('')}</tr></thead><tbody>`+(ids.length?ids.map(x=>`<tr><td class="pn">${esc(x.name)}${x.branch_id!==bid?' <small>(מושאל)</small>':''}</td>${days.map(d=>{const l=S.filter(s=>s.person_id===x.id&&s.day===d);return `<td class="${d===iso(new Date())?'today':''}">${l.map(s=>mark(s.kind,s.status)).join(' ')}</td>`}).join('')}</tr>`).join(''):'<tr><td colspan="9" class="hint">אין עובדים או משמרות</td></tr>')+'</tbody></table></div><div class="hint">☀️ בוקר · 🌙 ערב · ✱ אחר · ⏳ בקשה. תצוגה בלבד, עריכה בכרטיס כוח אדם.</div>'
+  }
+  view.innerHTML=`<div class="panel"><h2>לוח משמרות <small class="sub">(ניסוי)</small></h2>${br.data.length>1?`<label>סניף<select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
+  const step=n=>{const x=new Date(C.anchor+'T12:00:00');if(C.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*(C.mode==='week'?7:1));C.anchor=iso(x);viewCal()};
+  $('#calp').onclick=()=>step(-1);$('#caln').onclick=()=>step(1);$('#calt').onclick=()=>{C.anchor=iso(new Date());viewCal()};
+  view.querySelectorAll('button[data-cm]').forEach(b=>b.onclick=()=>{C.mode=b.dataset.cm;viewCal()});
+  if($('#calb'))$('#calb').onchange=e=>{C.branch=e.target.value;viewCal()};
+  view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{C.anchor=c.dataset.d;if(C.mode==='month')C.mode='week';viewCal()});
+}
 function route(){
   const h=location.hash;
   if(h.startsWith('#/brand/'))return viewBrand(h.slice(8));
   const t=h.replace('#/','')||'search';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR}[t]||viewSearch)();
+  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR,cal:viewCal}[t]||viewSearch)();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();
