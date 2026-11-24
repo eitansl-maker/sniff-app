@@ -100,6 +100,7 @@ async function viewHR(){
   const day=window.__hrDay||today();
   const [br,pp,sh]=await Promise.all([sb.from('sniff_branches').select('id,name,number,org_id').order('name'),sb.from('sniff_people').select('*').eq('active',true).order('name'),sb.from('sniff_shifts').select('*').eq('day',day)]);
   if(br.error||pp.error||sh.error){view.innerHTML='<div class="hint">שגיאה בטעינה, נסו שוב.</div>';return}
+  pp.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));br.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));
   const can=['hq','manager','area_manager','format_manager'].includes(ME.role);
   const P={};pp.data.forEach(x=>P[x.id]=x);
   const st={planned:'',confirmed:' ✅',cant:' ❌ לא יכול'};
