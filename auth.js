@@ -24,7 +24,8 @@ async function start(){
     sb.from('sniff_content').select('body').eq('kind','principles').maybeSingle()]);
   if(br.error)return loginScreen('שגיאה בטעינת המידע, נסו שוב.');
   const B=(br.data||[]).map(b=>({id:b.slug,name:b.name,he:b.he_name||b.name,origin:b.origin||'',status:b.status,type:b.type||'',audience:b.audience||'',points:b.points||[],tags:b.tags||[],
-    models:(b.sniff_models||[]).sort((x,y)=>x.sort-y.sort)}));
+    models:(b.sniff_models||[]).sort((x,y)=>x.name.localeCompare(y.name,'he'))}));
+  B.sort((x,y)=>x.he.localeCompare(y.he,'he'));
   B.forEach(b=>{if(!b.models.length)delete b.models});
   const m=u.user_metadata||{};
   gate.hidden=true;

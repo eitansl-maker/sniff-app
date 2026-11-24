@@ -69,7 +69,7 @@ function viewSearch(){
   q.focus();
 }
 function viewBrands(){
-  const all=[...new Set(B.flatMap(b=>b.tags))].sort();
+  const all=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
   view.innerHTML=`<div class="chips">${all.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${t}">${esc(t)}</button>`).join('')}</div>
   <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
   <div class="grid">${B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag))).map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
