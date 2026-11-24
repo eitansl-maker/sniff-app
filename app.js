@@ -132,7 +132,8 @@ async function viewHR(){
   const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
   const day=window.__hrDay||today();
   const [br,pp,sh]=await Promise.all([sb.from('sniff_branches').select('id,name,number,org_id,branch_type').order('name'),sb.from('sniff_people').select('*').eq('active',true).order('name'),sb.from('sniff_shifts').select('*').eq('day',day)]);
-  let REL=[],MYREL=[];if(['hq','manager','area_manager','format_manager'].includes(ME.role)){const l=await sb.rpc('sniff_released',{p_day:day});if(!l.error&&l.data)REL=l.data;const m=await sb.from('sniff_releases').select('id,person_id,kind').eq('day',day);if(!m.error&&m.data)MYREL=m.data}
+  let REL=[],MYREL=[];if(['hq','manager','area_manager','format_manager'].includes(ME.role)){for(const k of ['morning','evening','other']){const l=await sb.rpc('sniff_released',{p_day:day,p_kind:k});if(!l.error&&l.data)l.data.forEach(x=>REL.push(Object.assign({},x,{kind:k,person_id:x.person_id||x.id})))}
+    const m=await sb.from('sniff_releases').select('person_id,kind').eq('day',day);if(!m.error&&m.data)MYREL=m.data}
   if(br.error||pp.error||sh.error){view.innerHTML='<div class="hint">שגיאה בטעינה, נסו שוב.</div>';return}
   pp.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));br.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));
   const can=['hq','manager','area_manager','format_manager'].includes(ME.role);
@@ -145,7 +146,7 @@ async function viewHR(){
   const pav=x=>x.avatar_url?`<img class="pav" src="${esc(x.avatar_url)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:`<span class="pav pl">${esc((x.name||'?')[0])}</span>`;
   const contact=x=>`<span class="ppl">${pav(x)}<b>${esc(x.name)}</b>${x.emp_no?` <small>#${esc(x.emp_no)}</small>`:''}${x.title?` <small>${esc(x.title)}</small>`:''}${x.phone?` <a class="call" href="tel:${esc(x.phone)}">📞 ${esc(x.phone)}</a>`:''}${x.email?` <a class="call" href="mailto:${esc(x.email)}">✉️</a>`:''}</span>`;
   const KL={morning:'בוקר',evening:'ערב',other:'אחר'};
-  const relUI=x=>`<div class="rel"><small>שחרור להשאלה ביום זה:</small> ${['morning','evening','other'].map(k=>{const r=MYREL.find(y=>y.person_id===x.id&&y.kind===k);return r?`<button class="chip pri" data-a="unrel" data-id="${r.id}">שוחרר ל${KL[k]} ✕</button>`:`<button class="chip" data-a="rel" data-p="${x.id}" data-k2="${k}">שחרר ל${KL[k]}</button>`}).join('')}</div>`;
+  const relUI=x=>`<div class="rel"><small>שחרור להשאלה ביום זה:</small> ${['morning','evening','other'].map(k=>{const r=MYREL.find(y=>y.person_id===x.id&&y.kind===k);return r?`<button class="chip pri" data-a="unrel" data-p="${x.id}" data-k2="${k}">שוחרר ל${KL[k]} ✕</button>`:`<button class="chip" data-a="rel" data-p="${x.id}" data-k2="${k}">שחרר ל${KL[k]}</button>`}).join('')}</div>`;
   const multi=br.data.length>1;
   view.innerHTML=(multi?`<div class="seg"><button class="chip" id="openall">פתח את כל הסניפים</button><button class="chip" id="closeall">סגור הכל</button></div>`:'')+`<div class="hint">משמרות ליום <input type="date" id="hrday" value="${day}"></div>`+br.data.map(b=>{
     const mine=pp.data.filter(x=>x.branch_id===b.id),s=sh.data.filter(x=>x.branch_id===b.id);
@@ -173,8 +174,8 @@ async function viewHR(){
   $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
   view.querySelectorAll('button[data-a]').forEach(btn=>btn.onclick=async()=>{
     const a=btn.dataset.a,box=btn.closest('.panel');let r;
-    if(a==='rel')r=await sb.from('sniff_releases').insert({person_id:btn.dataset.p,day,kind:btn.dataset.k2});
-    else if(a==='unrel')r=await sb.from('sniff_releases').delete().eq('id',btn.dataset.id);
+    if(a==='rel')r=await sb.rpc('sniff_release_person',{p_person:btn.dataset.p,p_day:day,p_kind:btn.dataset.k2});
+    else if(a==='unrel')r=await sb.rpc('sniff_unrelease_person',{p_person:btn.dataset.p,p_day:day,p_kind:btn.dataset.k2});
     else if(a==='del')r=await sb.from('sniff_shifts').delete().eq('id',btn.dataset.id);
     else if(a==='approve')r=await sb.from('sniff_shifts').update({status:'planned'}).eq('id',btn.dataset.id);
     else if(a==='req'){r=await sb.from('sniff_shifts').insert({branch_id:btn.dataset.b,person_id:meP.id,day,kind:btn.dataset.k,status:'requested'})}
