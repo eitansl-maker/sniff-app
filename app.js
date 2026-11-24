@@ -57,7 +57,7 @@ function brandCard(b,extra,m){
   return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
 function viewSearch(){
   const tags=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
-  view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"></div>
+  view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"><button class="mic" id="mic" title="חיפוש קולי" aria-label="חיפוש קולי">🎤</button></div>
   <div class="chips">${tags.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
   <div id="res"></div>`;
@@ -72,6 +72,14 @@ function viewSearch(){
     }
     bind()};
   q.addEventListener('input',run);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition,mic=$('#mic');
+  if(!SR)mic.style.display='none';else{let rec=null;mic.onclick=()=>{
+    if(rec){rec.stop();return}
+    rec=new SR();rec.lang='he-IL';rec.interimResults=true;rec.maxAlternatives=1;
+    mic.classList.add('rec');q.placeholder='מקשיב... אפשר לדבר';
+    rec.onresult=e=>{q.value=Array.from(e.results).map(r=>r[0].transcript).join(' ');run()};
+    rec.onerror=()=>{};rec.onend=()=>{rec=null;mic.classList.remove('rec');q.placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים'};
+    try{rec.start()}catch(err){rec=null;mic.classList.remove('rec')}}}
   document.querySelectorAll('.chip[data-t]').forEach(c=>c.onclick=()=>{tag=tag===c.dataset.t?null:c.dataset.t;const v=q.value;viewSearch();$('#q').value=v;$('#q').dispatchEvent(new Event('input'))});
   $('#inact').onchange=e=>{showInactive=e.target.checked;run()};
   run();
