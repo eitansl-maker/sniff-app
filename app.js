@@ -189,7 +189,7 @@ async function viewHR(){
   if(ME.role==='hq'){view.insertAdjacentHTML('beforeend',`<div class="panel"><h3>סניף חדש</h3><div class="mode"><label>שם הסניף<input id="nbn"></label><label>מספר סניף<input id="nbno" inputmode="numeric"></label><div class="lbl">סוג סניף</div><div class="seg kseg"><button type="button" class="chip big pri" data-bt="regular">רגיל</button><button type="button" class="chip big" data-bt="outlet">אאוטלט</button></div><input type="hidden" id="nbt" value="regular"><button class="chip big pri" id="nbsave">שמור סניף</button></div></div>`);
     view.querySelectorAll('button[data-bt]').forEach(b=>b.onclick=()=>{$('#nbt').value=b.dataset.bt;view.querySelectorAll('button[data-bt]').forEach(x=>x.classList.toggle('pri',x===b))});
     $('#nbsave').onclick=async()=>{const n=$('#nbn').value.trim();if(!n)return;const org=(br.data[0]||{}).org_id;if(!org)return alert('אין ארגון');const r=await sb.from('sniff_branches').insert({org_id:org,name:n,number:$('#nbno').value.trim()||null,branch_type:$('#nbt').value});if(r.error)return alert('שגיאה: '+r.error.message);viewHR()}}
-  if(IS_DEV)view.insertAdjacentHTML('afterbegin','<div class="hint">🛠 מצב מפתח: <a class="call" href="#/cal">🗓 לוח שבועי / חודשי (ניסוי)</a></div>');
+  view.insertAdjacentHTML('afterbegin','<div class="seg"><a class="chip big pri" href="#/cal" style="text-align:center;text-decoration:none">🗓 לוח משמרות: יום / שבוע / חודש</a></div>');
   if(can){(async()=>{
     const box=document.createElement('div');box.className='panel';box.id='reqbox';view.prepend(box);
     const rq=await sb.from('sniff_staff_requests').select('*,sniff_branches(name)').eq('status','open').order('day');
@@ -250,7 +250,6 @@ window.__cal=window.__cal||{mode:'week',anchor:null,branch:null};
 const iso=d=>d.toLocaleDateString('sv');
 const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 async function viewCal(){
-  if(!IS_DEV){view.innerHTML='<div class="hint">המסך הזה פתוח רק למפתח.</div>';return}
   const sb=ME.sb,C=window.__cal;if(!C.anchor)C.anchor=iso(new Date());
   view.innerHTML='<div class="hint">טוען...</div>';
   const a=new Date(C.anchor+'T12:00:00');let from,to;
@@ -276,7 +275,7 @@ async function viewCal(){
     const cols=C.mode==='day'?1:7;
     body=`<div class="calgrid wk ${C.mode}">`+(C.mode==='week'?HD.map(h=>`<div class="ch">${h}</div>`).join(''):'')+days.map(d=>`<div class="cd wd ${d===iso(new Date())?'today':''}" data-d="${d}" data-go="1"><b>${C.mode==='day'?d.split('-').reverse().join('.'):+d.slice(8)}</b><div class="two2">${half(d,'morning')}${half(d,'evening')}</div></div>`).join('')+'</div><div class="hint">☀️ בוקר · 🌙 ערב · ⏳ בקשה. נגיעה ביום עוברת למסך השיבוץ של אותו יום.</div>'
   }
-  view.innerHTML=`<div class="panel"><h2>לוח משמרות <small class="sub">(ניסוי)</small></h2>${br.data.length>1?`<label>סניף<select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
+  view.innerHTML=`<div class="panel"><h2>לוח משמרות</h2>${br.data.length>1?`<label>סניף<select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
   const step=n=>{const x=new Date(C.anchor+'T12:00:00');if(C.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*(C.mode==='week'?7:1));C.anchor=iso(x);viewCal()};
   $('#calp').onclick=()=>step(-1);$('#caln').onclick=()=>step(1);$('#calt').onclick=()=>{C.anchor=iso(new Date());viewCal()};
   view.querySelectorAll('button[data-cm]').forEach(b=>b.onclick=()=>{C.mode=b.dataset.cm;viewCal()});
