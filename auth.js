@@ -29,7 +29,7 @@ async function start(){
   B.sort((x,y)=>x.he.localeCompare(y.he,'he'));
   B.forEach(b=>{if(!b.models.length)delete b.models});
   let CAT=[];
-  try{for(let from=0;;from+=1000){const r=await sb.from('sniff_catalog').select('brand,model_code,title,product_type,tags,colors,price_min,price_max,available,image,url').order('brand').range(from,from+999);if(r.error||!r.data||!r.data.length)break;CAT=CAT.concat(r.data);if(r.data.length<1000)break}}catch(e){}
+  try{for(let from=0;;from+=1000){const r=await sb.from('sniff_catalog').select('brand,model_code,title,product_type,tags,colors,price_min,price_max,regular_price_min,regular_price_max,outlet_price_min,outlet_price_max,outlet_available,available,image,url').order('brand').range(from,from+999);if(r.error||!r.data||!r.data.length)break;CAT=CAT.concat(r.data);if(r.data.length<1000)break}}catch(e){}
   const m=u.user_metadata||{};
   gate.hidden=true;
   window.SNIFF_BOOT(B,(pr.data&&pr.data.body)||{staff:[],store:[],stages:[],newModel:''},{
