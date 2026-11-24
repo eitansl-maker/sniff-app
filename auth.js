@@ -28,12 +28,14 @@ async function start(){
     models:(b.sniff_models||[]).sort((x,y)=>x.name.localeCompare(y.name,'he'))}));
   B.sort((x,y)=>x.he.localeCompare(y.he,'he'));
   B.forEach(b=>{if(!b.models.length)delete b.models});
+  let CAT=[];
+  try{for(let from=0;;from+=1000){const r=await sb.from('sniff_catalog').select('brand,model_code,title,product_type,tags,colors,price_min,price_max,available,image,url').order('brand').range(from,from+999);if(r.error||!r.data||!r.data.length)break;CAT=CAT.concat(r.data);if(r.data.length<1000)break}}catch(e){}
   const m=u.user_metadata||{};
   gate.hidden=true;
   window.SNIFF_BOOT(B,(pr.data&&pr.data.body)||{staff:[],store:[],stages:[],newModel:''},{
     name:mem.display_name||m.full_name||m.name||u.email,photo:m.avatar_url||m.picture||'',role:mem.role,title:mem.title,
     orgName:mem.sniff_orgs&&mem.sniff_orgs.name,branchName:mem.sniff_branches&&mem.sniff_branches.name,branchNumber:mem.sniff_branches&&mem.sniff_branches.number,
-    sb,userId:u.id,logout:async()=>{try{await sb.auth.signOut({scope:'local'})}catch(e){}try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.replace(location.pathname)}});
+    sb,catalog:CAT,userId:u.id,logout:async()=>{try{await sb.auth.signOut({scope:'local'})}catch(e){}try{Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k))}catch(e){}location.replace(location.pathname)}});
 }
 start();
 })();

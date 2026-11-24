@@ -27,6 +27,12 @@ const PREF=['וה','ול','וב','ש','ה','ל','ב','ו','כ','מ'];
 function stems(w){const o=[w];for(const p of PREF){if(w.startsWith(p)&&w.length-p.length>=2)o.push(w.slice(p.length))}return o}
 function norm(s){return s.replace(/[׳'"״]/g,'').toLowerCase()}
 function haystack(b,m){return norm([b.name,b.he,b.type,b.origin,b.audience,(b.tags||[]).join(' '),(b.points||[]).join(' '),m?m.name+' '+m.audience+' '+(m.tags||[]).join(' '):''].join(' '))}
+const CAT=ME.catalog||[];
+const nrm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9א-ת]/g,'');
+function brandCat(b){const k=[nrm(b.name),nrm(b.he)].filter(Boolean);return CAT.filter(c=>{const v=nrm(c.brand);return k.some(x=>v===x||(x.length>3&&(v.includes(x)||x.includes(v))&&v.length>3))})}
+function catCard(c){return `<div class="card cat"><div class="bav" style="background:#e5e7eb;overflow:hidden">${c.image?`<img src="${esc(c.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover">`:'👟'}</div><h3>${esc(c.brand)} ${esc(c.title)}</h3><div class="sub">${esc(c.product_type||'')}${c.price_min?` · ₪${Math.round(c.price_min)}${c.price_max>c.price_min?'-'+Math.round(c.price_max):''}`:''}${c.available===false?' · אזל':''}</div><div class="rest"><div class="tags">${(c.colors||[]).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>${c.url?`<p><a class="call" href="${esc(c.url)}" target="_blank" rel="noopener">לעמוד באתר</a></p>`:''}</div></div>`}
+function searchCat(q){const w=norm(q).split(/[\s,.;!?]+/).filter(x=>x&&!['מוצר','מוצרים','נעל','נעלי','נעליים','של','עם'].includes(x));if(!w.length)return[];
+  return CAT.map(c=>{const hs=norm([c.brand,c.title,c.product_type,(c.tags||[]).join(' '),(c.colors||[]).join(' ')].join(' '));let n=0;w.forEach(x=>{if(stems(x).some(s=>[s].concat((SYN[s]||[]).map(norm)).some(t=>hs.includes(t))))n++});return{c,n}}).filter(r=>r.n===w.length&&r.c.available!==false).slice(0,30).map(r=>r.c)}
 function search(q){
   const STOP=new Set(['מוצר','מוצרים','נעל','נעלי','נעליים','מותג','מותגים','דגם','דגמים','של','עם','בלי','או','גם','לי','אני','רוצה','מחפש','מחפשת','צריך','צריכה','יש','לך','את','אותו']);
   const words=norm(q).split(/[\s,.;!?]+/).filter(w=>w&&!STOP.has(w));
@@ -69,7 +75,8 @@ function viewSearch(){
   const run=()=>{
     if(q.value.trim()){
       const r=search(q.value);
-      res.innerHTML=r.length?'<div class="hint">התוצאות מסודרות לפי התאמה</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
+      const cr=searchCat(q.value);
+      res.innerHTML=(r.length||cr.length)?(r.length?'<div class="hint">התוצאות מסודרות לפי התאמה</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):'')+(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':''):'<div class="hint">לא נמצאה התאמה. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     }else{
       const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||b.tags.includes(tag)));
       res.innerHTML=`<div class="hint">${l.length} מותגים, בסדר א' ב'</div><div class="grid">${l.map(b=>brandCard(b,`<div class="tags">${b.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`)).join('')}</div>`;
@@ -95,6 +102,7 @@ function viewBrand(id){
   <p><b>למי זה מתאים:</b> ${esc(b.audience)}</p>
   <b>נקודות מכירה</b><ul>${b.points.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>
   <div class="tags">${b.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+  ${(()=>{const l=brandCat(b);return l.length?`<h3>בקטלוג (${l.length})</h3><div class="grid">${l.slice(0,60).map(catCard).join('')}</div>`:''})()}
   ${b.models?`<h3>דגמים</h3>${b.models.map(m=>`<div class="model"><b>${esc(m.name)}</b><div>${esc(m.audience)}</div></div>`).join('')}`:''}</div>`;
   $('#back').onclick=()=>history.back();
 }
