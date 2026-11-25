@@ -279,12 +279,43 @@ async function viewCal(){
     const cols=C.mode==='day'?1:7;
     body=`<div class="calgrid wk ${C.mode}">`+(C.mode==='week'?HD.map(h=>`<div class="ch">${h}</div>`).join(''):'')+days.map(d=>`<div class="cd wd ${d===iso(new Date())?'today':''}" data-d="${d}" data-go="1"><b>${C.mode==='day'?d.split('-').reverse().join('.'):+d.slice(8)}</b><div class="two2">${half(d,'morning')}${half(d,'evening')}</div></div>`).join('')+'</div><div class="hint">☀️ בוקר · 🌙 ערב · ⏳ בקשה. נגיעה ביום עוברת למסך השיבוץ של אותו יום.</div>'
   }
-  view.innerHTML=`<div class="panel"><h2>לוח משמרות</h2>${br.data.length>1?`<label class="calbl"><span>סניף</span><select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
+  view.innerHTML=`<div class="panel"><h2>לוח משמרות</h2>${br.data.length>1?`<label class="calbl"><span>סניף</span><select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<button class="chip big pri" id="calshare">📤 שלח את השבוע בוואטסאפ (תמונה)</button><p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
+  $('#calshare').onclick=()=>shareWeek(C,br.data.find(b=>b.id===bid),sb,P);
   const step=n=>{const x=new Date(C.anchor+'T12:00:00');if(C.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*(C.mode==='week'?7:1));C.anchor=iso(x);viewCal()};
   $('#calp').onclick=()=>step(-1);$('#caln').onclick=()=>step(1);$('#calt').onclick=()=>{C.anchor=iso(new Date());viewCal()};
   view.querySelectorAll('button[data-cm]').forEach(b=>b.onclick=()=>{C.mode=b.dataset.cm;viewCal()});
   if($('#calb'))$('#calb').onchange=e=>{C.branch=e.target.value;viewCal()};
   view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{if(c.dataset.go||C.mode==='month'){window.__hrDay=c.dataset.d;window.__hrOpen=C.branch;location.hash='#/hr'}else{C.anchor=c.dataset.d;viewCal()}});
+}
+
+async function shareWeek(C,branch,sb,P){
+  const a=new Date(C.anchor+'T12:00:00'),f=addD(a,-a.getDay()),days=[];for(let i=0;i<7;i++)days.push(addD(f,i));
+  const r=await sb.from('sniff_shifts').select('*').eq('branch_id',branch.id).gte('day',iso(days[0])).lte('day',iso(days[6]));
+  if(r.error)return alert('שגיאה בטעינה');
+  const S=r.data.filter(x=>x.status!=='cant');
+  const names=(d,k)=>S.filter(x=>x.day===iso(d)&&x.kind===k).map(x=>(P[x.person_id]||{}).name).filter(Boolean);
+  const DN=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const W=1080,hh=230,rowH=130,cw=400,dayW=W-2*cw-0;const H=hh+60+rowH*7+90;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.direction='rtl';g.textAlign='center';
+  g.fillStyle='#f3f4f8';g.fillRect(0,0,W,H);
+  g.fillStyle='#111';g.fillRect(0,0,W,hh);const gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,'#be123c');gr.addColorStop(1,'#ffe600');g.fillStyle=gr;g.fillRect(0,hh-8,W,8);
+  g.fillStyle='#fff';g.font='bold 78px Arial, sans-serif';g.fillText('משמרות · '+branch.name,W/2,105);
+  g.fillStyle='#ffe600';g.font='46px Arial, sans-serif';g.fillText(days[0].toLocaleDateString('he-IL',{day:'numeric',month:'long'})+' – '+days[6].toLocaleDateString('he-IL',{day:'numeric',month:'long'}),W/2,180);
+  const y0=hh+20;
+  // columns right to left: day, morning, evening
+  const xDay=W-dayW/2-20,xM=W-dayW-cw/2-20,xE=W-dayW-cw-cw/2-20;
+  g.fillStyle='#374151';g.font='bold 40px Arial, sans-serif';g.fillText('☀️ בוקר',xM,y0+38);g.fillText('🌙 ערב',xE,y0+38);
+  const fit=(arr,x,y)=>{const t=arr.length?arr:['—'];const fs=t.length>3?30:38;g.font=(arr.length?'600 ':'')+fs+'px Arial, sans-serif';g.fillStyle=arr.length?'#111827':'#9ca3af';const lh=fs+8,y1=y-((t.length-1)*lh)/2+fs/3;t.forEach((n,i)=>g.fillText(n,x,y1+i*lh,cw-30))};
+  days.forEach((d,i)=>{const y=y0+60+i*rowH,td=iso(d)===iso(new Date());
+    g.fillStyle=td?'#fff7ed':'#fff';g.strokeStyle=td?'#f97316':'#e5e7eb';g.lineWidth=td?5:2;
+    const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
+    rr(20,y,W-40,rowH-12,22);g.fill();g.stroke();
+    g.fillStyle='#111';g.font='bold 40px Arial, sans-serif';g.fillText('יום '+DN[i],xDay,y+55);g.fillStyle='#6b7280';g.font='32px Arial, sans-serif';g.fillText(d.getDate()+'.'+(d.getMonth()+1),xDay,y+98);
+    fit(names(d,'morning'),xM,y+(rowH-12)/2);fit(names(d,'evening'),xE,y+(rowH-12)/2)});
+  g.fillStyle='#6b7280';g.font='28px Arial, sans-serif';g.fillText('סניף · WeShoes',W/2,H-30);
+  const blob=await new Promise(res=>c.toBlob(res,'image/png'));const file=new File([blob],'משמרות-'+iso(days[0])+'.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'משמרות '+branch.name});return}catch(e){if(e&&e.name==='AbortError')return}}
+  const u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=file.name;l.click();
 }
 function bcVariants(c){c=String(c).replace(/\D/g,'');const a=[c];if(c.length===13&&c[0]==='0')a.push(c.slice(1));if(c.length===12)a.push('0'+c);return a}
 async function scanBarcode(){
