@@ -90,8 +90,8 @@ function viewSearch(){
   const run=()=>{
     const cb=$('#chipbox');if(cb)cb.hidden=!!q.value.trim();
     if(q.value.trim()){
-      const r=search(q.value).filter(x=>hasCat(x.b));
       const cr=searchCat(q.value);
+      const r=search(q.value).filter(x=>hasCat(x.b)).filter(x=>!cr.length||x.hits===x.of);
       res.innerHTML=(r.length||cr.length)?(cr.length?'<div class="hint">מהקטלוג של החנות</div><div class="grid">'+cr.map(catCard).join('')+'</div>':'')+(r.length?'<div class="hint">'+(cr.length?'מותגים קשורים':'התוצאות מסודרות לפי התאמה')+'</div>'+r.map(x=>`<div class="result">${brandCard(x.b,'',x.m)}</div>`).join(''):''):'<div class="hint">לא נמצאו נתונים. נסו מילים אחרות, למשל: ריצה, גשם, נוחות, ילדים.</div>';
     }else{
       const l=B.filter(b=>(showInactive||b.status==='active')&&(!tag||(b.tags.includes(tag)&&hasCat(b))));
