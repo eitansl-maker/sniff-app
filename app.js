@@ -80,13 +80,15 @@ function brandCard(b,extra,m){
   return `<div class="card ${off?'off':''}" data-b="${b.id}">${bav(b)}<h3>${title}${off?'<span class="badge off">לא פעיל</span>':''}</h3><div class="sub">${sub}</div><div class="rest"><p>${esc(m?m.audience:b.audience)}</p>${extra||''}</div></div>`}
 const hasCat=b=>!CAT.length||(b.models||[]).length>0||brandCat(b).length>0;
 function viewSearch(){
-  const tags=[...new Set(B.flatMap(b=>b.tags))].sort((x,y)=>x.localeCompare(y,'he'));
+  const all=new Set(B.flatMap(b=>b.tags));
+  const tags=['גברים','גשם','ילדים','כפכפים','נוחות','נשים','סנדל','עור','עמיד במים','ריצה','רגל רחבה','שטח','טבעוני','טיולים'].filter(t=>all.has(t)).sort((x,y)=>x.localeCompare(y,'he'));
   view.innerHTML=`<div class="hello">שלום ${esc((ME.name||'').split(' ')[0])}, מה מחפשים היום?</div><div class="search"><span>🔎</span><input id="q" placeholder='חפשו כמו שלקוח מדבר: נעלי ריצה לילדה, סנדל עמיד במים' autocomplete="off"><button class="mic" id="clr" title="מחיקה" aria-label="מחיקה" hidden style="font-size:22px">✕</button><button class="mic" id="mic" title="חיפוש קולי" aria-label="חיפוש קולי">🎤</button></div>
-  <div class="chips">${tags.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+  <div class="chips" id="chipbox">${tags.slice(0,30).map(t=>`<button class="chip ${tag===t?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
   <label class="toggle"><input type="checkbox" id="inact" ${showInactive?'checked':''}> הצג גם מותגים לא פעילים</label>
   <div id="res"></div>`;
   const q=$('#q'),res=$('#res');
   const run=()=>{
+    const cb=$('#chipbox');if(cb)cb.hidden=!!q.value.trim();
     if(q.value.trim()){
       const r=search(q.value).filter(x=>hasCat(x.b));
       const cr=searchCat(q.value);
