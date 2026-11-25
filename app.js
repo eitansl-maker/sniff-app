@@ -215,17 +215,18 @@ async function viewHR(){
       const ob=act.querySelector('[data-offer]');if(ob)ob.onclick=async()=>{const r=await sb.rpc('sniff_offer_for_request',{p_request:q.id,p_person:act.querySelector('.qsel').value});if(r.error)return alert('לא הצליח: '+r.error.message);viewHR()}}
     const rows=[...box.querySelectorAll('.row[data-q]')];if(rows.length>4){rows.slice(4).forEach(r=>r.hidden=true);const more=document.createElement('button');more.className='chip big';more.textContent='הצג עוד '+(rows.length-4)+' בקשות';more.onclick=()=>{rows.forEach(r=>r.hidden=false);more.remove()};box.appendChild(more)}
   })()}
+  view.querySelectorAll('.bh').forEach(h=>h.onclick=()=>{const b=h.nextElementSibling;b.hidden=!b.hidden});
+  if($('#openall')){$('#openall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=false);$('#closeall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=true)}
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
   view.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const m=b.closest('.mode');m.querySelector('.ksel').value=b.dataset.k;m.querySelectorAll('button[data-k]').forEach(x=>x.classList.toggle('pri',x===b));m.querySelector('.onote').hidden=b.dataset.k!=='other'});
   view.querySelectorAll('.panel').forEach(pn=>{const b=pn.querySelector('button[data-m]');if(b){const hasP=pn.querySelector('.psel');pn.querySelector(hasP?'button[data-m=shift]':'button[data-m=new]').click()}});
-  const refill=m=>{const s=m.querySelector('select.lbr'),sel=m.querySelector('.psel'),bid=(s&&s.value)||(s?s.dataset.b:m.dataset.bid);const k=m.querySelector('.ksel').value;
+  const refill=m=>{if(!m.querySelector('.psel')||!m.querySelector('.ksel'))return;const s=m.querySelector('select.lbr'),sel=m.querySelector('.psel'),bid=(s&&s.value)||(s?s.dataset.b:m.dataset.bid);const k=m.querySelector('.ksel').value;
     const busy=new Set(sh.data.filter(x=>x.kind===k&&x.status!=='cant'&&k!=='other').map(x=>x.person_id));
     const own=bid===m.dataset.bid;const l=(own?[...ALLP.values()].filter(x=>x.branch_id===bid&&!busy.has(x.id)):REL.filter(x=>x.branch_id===bid&&x.kind===k).map(x=>({id:x.person_id,name:x.name}))).sort((x,y)=>x.name.localeCompare(y.name,'he'));
     sel.innerHTML=l.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')||'<option value="">'+(own?'אין עובדים פנויים למשמרת הזאת':'אין עובדים משוחררים למשמרת הזאת')+'</option>'};
   view.querySelectorAll('.mode[data-mode=shift]').forEach(m=>{const s=m.querySelector('select.lbr');if(s)s.onchange=()=>refill(m);m.querySelectorAll('button[data-k]').forEach(b=>b.addEventListener('click',()=>refill(m)));refill(m)});
   view.querySelectorAll('button[data-e]').forEach(b=>b.onclick=()=>{const f=view.querySelector('.edit[data-eid="'+b.dataset.e+'"]');f.hidden=!f.hidden});
   if(window.__hrOpen){const pn=view.querySelector('.panel[data-bid="'+window.__hrOpen+'"] .pbody');if(pn){pn.hidden=false;pn.parentElement.scrollIntoView()}window.__hrOpen=null}
-  view.querySelectorAll('.bh').forEach(h=>h.onclick=()=>{const b=h.nextElementSibling;b.hidden=!b.hidden});
   if($('#openall')){$('#openall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=false);$('#closeall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=true)}
   if($('#dtoday'))$('#dtoday').onclick=()=>{window.__hrDay=today();viewHR()};
   $('#hrday').onchange=e=>{window.__hrDay=e.target.value;viewHR()};
