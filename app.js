@@ -281,6 +281,7 @@ async function viewCal(){
   }
   view.innerHTML=`<div class="panel"><h2>לוח משמרות</h2>${br.data.length>1?`<label class="calbl"><span>סניף</span><select id="calb">${br.data.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}<div class="seg"><button class="chip ${C.mode==='day'?'pri':''}" data-cm="day">יום</button><button class="chip ${C.mode==='week'?'pri':''}" data-cm="week">שבוע</button><button class="chip ${C.mode==='month'?'pri':''}" data-cm="month">חודש</button></div><div class="seg"><button class="chip" id="calp">→ הקודם</button><button class="chip" id="calt">היום</button><button class="chip" id="caln">הבא ←</button></div><h3>${esc(title)}</h3>${body}<button class="chip big pri" id="calshare">📤 שלח את השבוע בוואטסאפ (תמונה)</button><p><a class="call" href="#/hr">חזרה לכוח אדם</a></p></div>`;
   $('#calshare').onclick=()=>shareWeek(C,br.data.find(b=>b.id===bid),sb,P);
+  if(C.mode==='week'){drawWeek(C,br.data.find(b=>b.id===bid),sb,P).then(w=>{if(!w||!$('#calshare'))return;const im=new Image();im.src=w.c.toDataURL('image/png');im.style.cssText='width:100%;border-radius:16px;margin:10px 0;display:block';im.alt='משמרות השבוע';$('#calshare').before(im)})}
   const step=n=>{const x=new Date(C.anchor+'T12:00:00');if(C.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*(C.mode==='week'?7:1));C.anchor=iso(x);viewCal()};
   $('#calp').onclick=()=>step(-1);$('#caln').onclick=()=>step(1);$('#calt').onclick=()=>{C.anchor=iso(new Date());viewCal()};
   view.querySelectorAll('button[data-cm]').forEach(b=>b.onclick=()=>{C.mode=b.dataset.cm;viewCal()});
@@ -288,10 +289,10 @@ async function viewCal(){
   view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{if(c.dataset.go||C.mode==='month'){window.__hrDay=c.dataset.d;window.__hrOpen=C.branch;location.hash='#/hr'}else{C.anchor=c.dataset.d;viewCal()}});
 }
 
-async function shareWeek(C,branch,sb,P){
+async function drawWeek(C,branch,sb,P){
   const a=new Date(C.anchor+'T12:00:00'),f=addD(a,-a.getDay()),days=[];for(let i=0;i<7;i++)days.push(addD(f,i));
   const r=await sb.from('sniff_shifts').select('*').eq('branch_id',branch.id).gte('day',iso(days[0])).lte('day',iso(days[6]));
-  if(r.error)return alert('שגיאה בטעינה');
+  if(r.error)return null;
   const S=r.data.filter(x=>x.status!=='cant');
   const names=(d,k)=>S.filter(x=>x.day===iso(d)&&x.kind===k).map(x=>(P[x.person_id]||{}).name).filter(Boolean);
   const DN=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
@@ -313,6 +314,10 @@ async function shareWeek(C,branch,sb,P){
     g.fillStyle='#111';g.font='bold 40px Arial, sans-serif';g.fillText('יום '+DN[i],xDay,y+55);g.fillStyle='#6b7280';g.font='32px Arial, sans-serif';g.fillText(d.getDate()+'.'+(d.getMonth()+1),xDay,y+98);
     fit(names(d,'morning'),xM,y+(rowH-12)/2);fit(names(d,'evening'),xE,y+(rowH-12)/2)});
   g.fillStyle='#6b7280';g.font='28px Arial, sans-serif';g.fillText('סניף · WeShoes',W/2,H-30);
+  return {c,start:iso(days[0])};
+}
+async function shareWeek(C,branch,sb,P){
+  const w=await drawWeek(C,branch,sb,P);if(!w)return;const c=w.c,days=[new Date(w.start+'T12:00:00')];
   const blob=await new Promise(res=>c.toBlob(res,'image/png'));const file=new File([blob],'משמרות-'+iso(days[0])+'.png',{type:'image/png'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'משמרות '+branch.name});return}catch(e){if(e&&e.name==='AbortError')return}}
   const u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=file.name;l.click();
