@@ -344,6 +344,29 @@ async function scanBarcode(){
     }catch(e){const x=ov.querySelector('#scerr');if(x)x.textContent='אין גישה למצלמה, אפשר להקליד מספר.'}})();
   })
 }
+
+async function shareOrders(bname,groups){
+  const rows=groups.map(g=>{const f=g[0];return{t:((f.brand?f.brand+' ':'')+f.title).trim(),s:f.size||'',c:f.color||'',n:g.length,o:g.every(x=>x.status==='ordered')}}).sort((x,y)=>x.t.localeCompare(y.t,'he'));
+  const W=1080,hh=230,rh=104,H=hh+40+Math.max(1,rows.length)*rh+110;
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.direction='rtl';g.textAlign='center';
+  g.fillStyle='#f3f4f8';g.fillRect(0,0,W,H);
+  g.fillStyle='#111';g.fillRect(0,0,W,hh);const gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,'#be123c');gr.addColorStop(1,'#ffe600');g.fillStyle=gr;g.fillRect(0,hh-8,W,8);
+  g.fillStyle='#fff';g.font='bold 76px Arial, sans-serif';g.fillText('רשימה להזמנה · '+bname,W/2,105);
+  g.fillStyle='#ffe600';g.font='46px Arial, sans-serif';g.fillText(new Date().toLocaleDateString('he-IL',{day:'numeric',month:'long',year:'numeric'})+' · '+rows.length+' פריטים',W/2,180);
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
+  const xT=W-40,xS=300,xC=520,xN=130;
+  rows.forEach((r,i)=>{const y=hh+30+i*rh;
+    g.fillStyle='#fff';g.strokeStyle='#e5e7eb';g.lineWidth=2;rr(20,y,W-40,rh-12,20);g.fill();g.stroke();
+    g.textAlign='right';g.fillStyle='#111827';g.font='bold 36px Arial, sans-serif';let t=r.t;while(g.measureText(t).width>440&&t.length>3)t=t.slice(0,-2);if(t!==r.t)t+='…';g.fillText(t,xT-10,y+58,440);
+    g.textAlign='center';g.fillStyle='#111827';g.font='bold 40px Arial, sans-serif';g.fillText(r.s?'מידה '+r.s:'',495,y+58,150);
+    g.fillStyle='#6b7280';g.font='32px Arial, sans-serif';g.fillText(r.c,330,y+58,140);
+    g.fillStyle=r.o?'#16a34a':'#be123c';g.font='bold 30px Arial, sans-serif';g.fillText(r.o?'הוזמן':(r.n>1?'סומן '+r.n+' פעמים':'חדש'),120,y+56,200)});
+  if(!rows.length){g.fillStyle='#6b7280';g.font='40px Arial, sans-serif';g.textAlign='center';g.fillText('אין פריטים מסומנים',W/2,hh+100)}
+  g.textAlign='center';g.fillStyle='#6b7280';g.font='28px Arial, sans-serif';g.fillText('סניף · WeShoes',W/2,H-34);
+  const blob=await new Promise(res=>c.toBlob(res,'image/png'));const file=new File([blob],'להזמנה-'+new Date().toISOString().slice(0,10)+'.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'להזמנה '+bname});return}catch(e){if(e&&e.name==='AbortError')return}}
+  const u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=file.name;l.click();
+}
 async function viewLow(){
   const sb=ME.sb;view.innerHTML='<div class="hint">טוען...</div>';
   const br=await sb.from('sniff_branches').select('id,name').order('name');const B=br.data||[];
@@ -358,7 +381,8 @@ async function viewLow(){
   const names=[...new Set(CAT.map(c=>(c.brand?c.brand+' ':'')+c.title))].sort();
   view.innerHTML=`<div class="panel"><h2>📦 אוזל / להזמנה</h2>${B.length>1?`<label class="calbl"><span>סניף</span><select id="lwb">${B.map(b=>`<option value="${b.id}" ${b.id===L.branch?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>`:''}
   <div class="mode"><button class="chip big pri" id="lwscan">📷 סרוק ברקוד</button><div class="hint" id="lwbc"></div><label>דגם<input id="lwt" list="lwl" placeholder="התחל להקליד שם דגם"><datalist id="lwl">${names.slice(0,3000).map(n=>`<option value="${esc(n)}">`).join('')}</datalist></label><label>מידה<input id="lws" inputmode="numeric"></label><label>צבע<input id="lwc"></label><label>הערה<input id="lwn"></label><button class="chip big pri" id="lwsave">סמן כאוזל</button></div></div>
-  <div class="panel"><h3>רשימה להזמנה (${groups.length})</h3>${groups.length?groups.map(row).join(''):'<div class="hint">אין פריטים מסומנים</div>'}</div>`;
+  <div class="panel"><h3>רשימה להזמנה (${groups.length})</h3>${groups.length?'<button class="chip big pri" id="lwshare">📤 שלח את הרשימה (תמונה)</button>':''}${groups.length?groups.map(row).join(''):'<div class="hint">אין פריטים מסומנים</div>'}</div>`;
+  if($('#lwshare'))$('#lwshare').onclick=()=>shareOrders((B.find(b=>b.id===L.branch)||{}).name||'',groups);
   if($('#lwb'))$('#lwb').onchange=e=>{L.branch=e.target.value;viewLow()};
   let BC=null,FIX=false;
   $('#lwscan').onclick=async()=>{const code=await scanBarcode();if(!code)return;BC=code;const vs=bcVariants(code);
