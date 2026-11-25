@@ -217,7 +217,7 @@ async function viewHR(){
   })()}
   view.querySelectorAll('.bh').forEach(h=>h.onclick=()=>{const b=h.nextElementSibling;b.hidden=!b.hidden});
   const applyBr=()=>{const v=window.__hrBr||'';view.querySelectorAll('.panel[data-bid]').forEach(p=>{p.hidden=!!v&&p.dataset.bid!==v;if(v&&p.dataset.bid===v){const pb=p.querySelector('.pbody');if(pb)pb.hidden=false}})};
-  if($('#brsel')){$('#brsel').onchange=e=>{window.__hrBr=e.target.value;applyBr()};applyBr()}
+  if($('#brsel')){$('#brsel').onchange=e=>{window.__hrBr=e.target.value;if(window.__hrBr&&window.__cal)window.__cal.branch=window.__hrBr;applyBr()};applyBr()}
   if($('#openall')){$('#openall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=false);$('#closeall').onclick=()=>view.querySelectorAll('.pbody').forEach(b=>b.hidden=true)}
   view.querySelectorAll('button[data-m]').forEach(btn=>btn.onclick=()=>{const box=btn.closest('.panel');box.querySelectorAll('.mode').forEach(m=>m.hidden=m.dataset.mode!==btn.dataset.m);box.querySelectorAll('button[data-m]').forEach(x=>x.classList.toggle('pri',x===btn))});
   view.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const m=b.closest('.mode');m.querySelector('.ksel').value=b.dataset.k;m.querySelectorAll('button[data-k]').forEach(x=>x.classList.toggle('pri',x===b));m.querySelector('.onote').hidden=b.dataset.k!=='other'});
@@ -263,6 +263,7 @@ async function viewCal(){
   const [br,pp,sh]=await Promise.all([sb.from('sniff_branches').select('id,name,branch_type').order('name'),sb.from('sniff_people').select('id,name,branch_id,active').order('name'),sb.from('sniff_shifts').select('*').gte('day',iso(from)).lte('day',iso(to))]);
   if(br.error||pp.error||sh.error){view.innerHTML='<div class="hint">שגיאה בטעינה.</div>';return}
   br.data.sort((x,y)=>x.name.localeCompare(y.name,'he'));
+  if(window.__hrBr&&br.data.some(b=>b.id===window.__hrBr))C.branch=window.__hrBr;
   if(!C.branch||!br.data.some(b=>b.id===C.branch))C.branch=(br.data[0]||{}).id;
   const bid=C.branch,P={};pp.data.forEach(x=>P[x.id]=x);
   const S=sh.data.filter(x=>x.branch_id===bid&&x.status!=='cant');
@@ -285,7 +286,7 @@ async function viewCal(){
   const step=n=>{const x=new Date(C.anchor+'T12:00:00');if(C.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*(C.mode==='week'?7:1));C.anchor=iso(x);viewCal()};
   $('#calp').onclick=()=>step(-1);$('#caln').onclick=()=>step(1);$('#calt').onclick=()=>{C.anchor=iso(new Date());viewCal()};
   view.querySelectorAll('button[data-cm]').forEach(b=>b.onclick=()=>{C.mode=b.dataset.cm;viewCal()});
-  if($('#calb'))$('#calb').onchange=e=>{C.branch=e.target.value;viewCal()};
+  if($('#calb'))$('#calb').onchange=e=>{C.branch=e.target.value;window.__hrBr=C.branch;viewCal()};
   view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{if(c.dataset.go||C.mode==='month'){window.__hrDay=c.dataset.d;window.__hrOpen=C.branch;location.hash='#/hr'}else{C.anchor=c.dataset.d;viewCal()}});
 }
 
