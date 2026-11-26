@@ -292,6 +292,30 @@ async function viewCal(){
   view.querySelectorAll('[data-d]').forEach(c=>c.onclick=()=>{if(c.dataset.go||C.mode==='month'){window.__hrDay=c.dataset.d;window.__hrOpen=C.branch;location.hash='#/hr'}else{C.anchor=c.dataset.d;viewCal()}});
 }
 
+window.__mine=window.__mine||{mode:'week',anchor:null};
+async function viewMine(){
+  const sb=ME.sb,M=window.__mine;if(!M.anchor)M.anchor=iso(new Date());
+  view.innerHTML='<div class="hint">טוען...</div>';
+  const a=new Date(M.anchor+'T12:00:00');let from,to;
+  if(M.mode==='week'){from=addD(a,-a.getDay());to=addD(from,6)}else{from=new Date(a.getFullYear(),a.getMonth(),1,12);to=new Date(a.getFullYear(),a.getMonth()+1,0,12)}
+  const pr=await sb.from('sniff_people').select('id,name').eq('user_id',ME.userId);
+  if(pr.error){view.innerHTML='<div class="hint">שגיאה בטעינה.</div>';return}
+  const ids=pr.data.map(x=>x.id);
+  if(!ids.length){view.innerHTML='<div class="panel"><h2>המשמרות שלי</h2><div class="hint">המשתמש שלך עדיין לא מקושר לרשומת עובד. פנה למנהל.</div></div>';return}
+  const [sh,br]=await Promise.all([sb.from('sniff_shifts').select('*').in('person_id',ids).gte('day',iso(from)).lte('day',iso(to)).order('day'),sb.from('sniff_branches').select('id,name')]);
+  if(sh.error||br.error){view.innerHTML='<div class="hint">שגיאה בטעינה.</div>';return}
+  const BN={};br.data.forEach(b=>BN[b.id]=b.name);
+  const S=sh.data.filter(x=>x.status!=='cant');
+  const HD=['א','ב','ג','ד','ה','ו','ש'];
+  const title=M.mode==='month'?a.toLocaleDateString('he-IL',{month:'long',year:'numeric'}):from.toLocaleDateString('he-IL',{day:'numeric',month:'short'})+' – '+to.toLocaleDateString('he-IL',{day:'numeric',month:'short'});
+  const cnt=k=>S.filter(x=>x.kind===k).length;
+  const rows=S.length?S.map(x=>{const d=new Date(x.day+'T12:00:00');return `<div class="row"><b>יום ${HD[d.getDay()]} ${d.getDate()}.${d.getMonth()+1}</b> · ${KIND[x.kind]||''}${x.status==='requested'?' ⏳':''} <span class="sub">${esc(BN[x.branch_id]||'')}${x.note?' · '+esc(x.note):''}</span></div>`}).join(''):'<div class="hint">אין לך משמרות בתקופה הזו.</div>';
+  view.innerHTML=`<div class="panel"><h2>המשמרות שלי</h2><div class="seg"><button class="chip ${M.mode==='week'?'pri':''}" data-mm="week">שבוע</button><button class="chip ${M.mode==='month'?'pri':''}" data-mm="month">חודש</button></div><div class="seg"><button class="chip" id="mp">→ הקודם</button><button class="chip" id="mt">היום</button><button class="chip" id="mn">הבא ←</button></div><h3>${esc(title)}</h3><div class="hint">סה"כ ${S.length} משמרות: ☀️ ${cnt('morning')} בוקר · 🌙 ${cnt('evening')} ערב${cnt('other')?' · ✱ '+cnt('other')+' אחר':''}</div>${rows}</div>`;
+  const step=n=>{const x=new Date(M.anchor+'T12:00:00');if(M.mode==='month')x.setMonth(x.getMonth()+n);else x.setDate(x.getDate()+n*7);M.anchor=iso(x);viewMine()};
+  $('#mp').onclick=()=>step(-1);$('#mn').onclick=()=>step(1);$('#mt').onclick=()=>{M.anchor=iso(new Date());viewMine()};
+  view.querySelectorAll('button[data-mm]').forEach(b=>b.onclick=()=>{M.mode=b.dataset.mm;viewMine()});
+}
+
 async function drawWeek(C,branch,sb,P){
   const a=new Date(C.anchor+'T12:00:00'),f=addD(a,-a.getDay()),days=[];for(let i=0;i<7;i++)days.push(addD(f,i));
   const r=await sb.from('sniff_shifts').select('*').eq('branch_id',branch.id).gte('day',iso(days[0])).lte('day',iso(days[6]));
@@ -417,7 +441,7 @@ function route(){
   if(h.startsWith('#/brand/'))return viewBrand(h.slice(8));
   const t=h.replace('#/','')||'search';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR,cal:viewCal,low:viewLow}[t]||viewSearch)();
+  ({search:viewSearch,brands:viewSearch,sales:viewSales,hr:viewHR,cal:viewCal,mine:viewMine,low:viewLow}[t]||viewSearch)();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{location.hash='#/'+b.dataset.t});
 window.addEventListener('hashchange',route);route();
